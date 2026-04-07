@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة قيس | الإدارة التعليمية الشاملة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- مكتبات البث وقراءة الـ PDF -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+
+    <style>
+        :root { 
+            --primary: #2563eb; --primary-dark: #1e40af; --secondary: #10b981; 
+            --danger: #ef4444; --warning: #f59e0b; --info: #3b82f6; --purple: #8b5cf6;
+            --dark: #0f172a; --darker: #020617; --sidebar: #1e293b;
+            --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #334155; --text-light: #64748b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
+        
+        /* Layout Structure */
+        #app { display: flex; width: 100%; }
+        
+        /* Sidebar */
+        .sidebar { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; transition: 0.3s; z-index: 100; box-shadow: 4px 0 10px rgba(0,0,0,0.1); }
+        .sidebar-header { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .sidebar-header h2 { font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 5px; }
+        .sidebar-header p { font-size: 0.8rem; color: #94a3b8; }
+        .nav-links { flex: 1; padding: 15px 0; overflow-y: auto; }
+        .nav-link { display: flex; align-items: center; padding: 12px 25px; color: #cbd5e1; text-decoration: none; transition: 0.2s; cursor: pointer; border-right: 4px solid transparent; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--primary-dark); color: white; border-right-color: #60a5fa; }
+        .nav-link i { width: 25px; font-size: 1.1rem; text-align: center; margin-left: 10px; }
+        .sidebar-footer { padding: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .logout-btn { width: 100%; background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); padding: 10px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.2); }
+
+        /* Main Content */
+        .main-content { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; background: var(--bg); }
+        .topbar { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .menu-toggle { display: none; font-size: 1.5rem; color: var(--text); cursor: pointer; }
+        
+        .content-area { padding: 30px; }
+        .section-view { display: none; animation: fadeIn 0.4s ease; }
+        .section-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* General UI Components */
+        h2.section-title { font-size: 1.5rem; color: var(--dark); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        /* Grid Layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+
+        /* Form Controls */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 8px; font-weight: 700; color: var(--text); font-size: 0.9rem; }
+        input[type="text"], input[type="number"], input[type="password"], input[type="date"], select, textarea { width: 100%; padding: 10px 15px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; background: #f8fafc; transition: 0.3s; color: var(--text); }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        /* Buttons */
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--secondary); color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-purple { background: var(--purple); color: white; }
+        .btn-purple:hover { background: #7c3aed; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: #f1f5f9; }
+        .btn-small { padding: 6px 12px; font-size: 0.85rem; border-radius: 6px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Tables */
+        .table-responsive { overflow-x: auto; background: white; border-radius: 12px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; text-align: right; font-size: 0.9rem; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; color: var(--text-light); font-weight: 700; text-transform: uppercase; font-size: 0.8rem; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f1f5f9; }
+
+        /* Badges & Tags */
+        .badge { padding: 4px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-block;}
+        .badge-blue { background: #dbeafe; color: #1d4ed8; }
+        .badge-green { background: #dcfce3; color: #15803d; }
+        .badge-red { background: #fee2e2; color: #b91c1c; }
+        .badge-orange { background: #fef3c7; color: #b45309; }
+        .badge-purple { background: #f3e8ff; color: #6d28d9; }
+        .badge-dark { background: #e2e8f0; color: #334155; }
+
+        /* Custom UI Elements */
+        .cloud-status { padding: 8px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 8px; background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+        .cloud-status.connected { background: #d1fae5; color: #047857; border-color: #a7f3d0; }
+        
+        .timer-display { font-size: 3.5rem; font-weight: 800; color: var(--dark); font-family: monospace; text-align: center; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        .report-card { border-top: 5px solid var(--primary); }
+        .stat-box { text-align: center; padding: 20px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--border); }
+        .stat-number { font-size: 2rem; font-weight: 800; color: var(--primary); margin: 10px 0 5px; }
+
+        /* Toggle Switch for Permissions */
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--secondary); }
+        input:checked + .slider:before { transform: translateX(24px); }
+        .permission-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid var(--border); }
+        .permission-row:last-child { border-bottom: none; }
+
+        /* Exam Questions Builder */
+        .q-box { background: #f8fafc; border: 1px solid var(--border); border-left: 4px solid var(--purple); border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
+        .q-remove { position: absolute; top: 15px; left: 15px; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
+        
+        .student-exam-q { margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid var(--border); }
+        .student-exam-q label { display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: normal; margin-bottom: 8px; }
+        .student-exam-q label:hover { background: #f1f5f9; }
+        .student-exam-q input[type="radio"] { width: auto; transform: scale(1.2); cursor: pointer; }
+
+        /* Login Screen */
+        .login-wrapper { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); width: 100%; position: absolute; top: 0; left: 0; z-index: 1000; }
+        .login-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        
+        /* Toast & Modals */
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); color: white; padding: 15px 30px; border-radius: 30px; font-weight: 700; opacity: 0; transition: 0.4s; z-index: 2000; box-shadow: 0 10px 20px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; }
+        #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1500; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease; max-height: 90vh; overflow-y: auto;}
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+
+        /* Live Camera Viewers */
+        .cam-container { position: relative; border-radius: 12px; overflow: hidden; background: #000; border: 3px solid var(--border); }
+        .cam-container video { width: 100%; display: block; }
+        .cam-label { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; }
+        .pulse-red { width: 10px; height: 10px; background: #ef4444; border-radius: 50%; animation: pulse 1.5s infinite; }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: -260px; height: 100vh; }
+            .sidebar.open { left: 0; }
+            .menu-toggle { display: block; }
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="loginScreen" class="login-wrapper">
+    <div class="login-card">
+        <i class="fa-solid fa-graduation-cap" style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;"></i>
+        <h2 style="margin-bottom: 5px; color: var(--dark);">منصة قيس التعليمية</h2>
+        <p style="color: var(--text-light); margin-bottom: 30px; font-size: 0.9rem;">بوابة الإدارة والأداء الذكي</p>
+        
+        <div id="cloudStatusLogin" class="cloud-status" style="justify-content: center; margin-bottom: 20px;">
+            <i class="fa-solid fa-spinner fa-spin"></i> جاري الاتصال بالسحابة...
+        </div>
+
+        <div class="form-group"><input type="text" id="loginUser" placeholder="اسم المستخدم"></div>
+        <div class="form-group"><input type="password" id="loginPass" placeholder="كلمة المرور"></div>
+        <button class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="login()">تسجيل الدخول <i class="fa-solid fa-arrow-left"></i></button>
+    </div>
+</div>
+
+<!-- Main App UI -->
+<div id="app" style="display: none;">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="fa-solid fa-cloud" style="font-size: 2rem; color: #60a5fa; margin-bottom: 10px;"></i>
+            <h2>نظام قيس</h2>
+            <p id="userRoleText">الإدارة العليا</p>
+        </div>
+        
+        <!-- Admin Navigation -->
+        <div class="nav-links" id="navAdmin" style="display: none;">
+            <a class="nav-link active" onclick="nav('admin-dashboard', this)"><i class="fa-solid fa-chart-pie"></i> لوحة القيادة</a>
+            <a class="nav-link" onclick="nav('admin-schools', this)"><i class="fa-solid fa-school"></i> إدارة المدارس</a>
+            <a class="nav-link" onclick="nav('admin-students', this)"><i class="fa-solid fa-users"></i> إدارة الطلاب</a>
+            <a class="nav-link" onclick="nav('admin-attendance', this)"><i class="fa-solid fa-calendar-check"></i> سجل الحضور</a>
+            <a class="nav-link" onclick="nav('admin-exams', this)"><i class="fa-solid fa-file-signature"></i> سجل الاختبارات</a>
+            <a class="nav-link" onclick="nav('admin-reports', this)"><i class="fa-solid fa-file-invoice"></i> التقرير الشامل</a>
+            <hr style="border:none; border-top:1px solid rgba(255,255,255,0.05); margin: 10px 20px;">
+            <a class="nav-link" onclick="nav('admin-permissions', this)" style="color:#fbbf24;"><i class="fa-solid fa-user-lock"></i> صلاحيات الطلاب</a>
+            <a class="nav-link" onclick="nav('admin-aiexams', this)" style="color:#c084fc;"><i class="fa-solid fa-robot"></i> مراجعة الوالد (AI)</a>
+            <a class="nav-link" onclick="nav('admin-settings', this)"><i class="fa-solid fa-gear"></i> الإعدادات الأكاديمية</a>
+        </div>
+
+        <!-- Student Navigation -->
+        <div class="nav-links" id="navStudent" style="display: none;">
+            <a class="nav-link active" onclick="nav('std-dashboard', this)"><i class="fa-solid fa-house"></i> الرئيسية</a>
+            <a class="nav-link" id="navStdStudy" onclick="nav('std-study', this)"><i class="fa-solid fa-book-open"></i> تسجيل المذاكرة</a>
+            <a class="nav-link" id="navStdActivities" onclick="nav('std-activities', this)"><i class="fa-solid fa-medal"></i> الأنشطة والإثراءات</a>
+            <a class="nav-link" id="navStdAiExams" onclick="nav('std-aiexams', this)" style="color:#c084fc; display:none;"><i class="fa-solid fa-file-circle-question"></i> اختبارات الوالد</a>
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج</button>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="main-content">
+        <!-- Topbar -->
+        <div class="topbar">
+            <i class="fa-solid fa-bars menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')"></i>
+            <div id="topWelcome" style="font-weight: 700; font-size: 1.1rem; color: var(--dark);"></div>
+            <div id="cloudStatusApp" class="cloud-status connected"><i class="fa-solid fa-cloud-check"></i> متصل بالسحابة</div>
+        </div>
+
+        <div class="content-area">
+            
+            <!-- ============================================== -->
+            <!-- ADMIN VIEWS -->
+            <!-- ============================================== -->
+
+            <!-- Admin Dashboard -->
+            <div id="admin-dashboard" class="section-view active">
+                <h2 class="section-title"><i class="fa-solid fa-chart-pie"></i> النظرة العامة والرقابة الحية</h2>
+                
+                <div class="grid-4 mb-20" style="margin-bottom: 20px;">
+                    <div class="card stat-box">
+                        <i class="fa-solid fa-school" style="font-size: 2rem; color: var(--info);"></i>
+                        <div class="stat-number" id="statSchools">0</div>
+                        <div style="color: var(--text-light);">المدارس المسجلة</div>
+                    </div>
+                    <div class="card stat-box">
+                        <i class="fa-solid fa-users" style="font-size: 2rem; color: var(--primary);"></i>
+                        <div class="stat-number" id="statStudents">0</div>
+                        <div style="color: var(--text-light);">إجمالي الطلاب</div>
+                    </div>
+                    <div class="card stat-box">
+                        <i class="fa-solid fa-book" style="font-size: 2rem; color: var(--secondary);"></i>
+                        <div class="stat-number" id="statSubjects">0</div>
+                        <div style="color: var(--text-light);">المواد الدراسية</div>
+                    </div>
+                    <div class="card stat-box">
+                        <i class="fa-solid fa-clock" style="font-size: 2rem; color: var(--warning);"></i>
+                        <div class="stat-number" id="statHours">0</div>
+                        <div style="color: var(--text-light);">ساعات المذاكرة</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top: 4px solid var(--info);">
+                    <h3 style="margin-bottom: 15px; display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-satellite-dish" style="color:var(--info);"></i> الرادار والبث المباشر</h3>
+                    <div id="liveStatusContainer" style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        لا يوجد طلاب في وضع المذاكرة حالياً.
+                    </div>
+                    <div id="adminVideoWrapper" style="display: none; max-width: 600px; margin: 0 auto;">
+                        <div class="cam-container">
+                            <div class="cam-label"><div class="pulse-red"></div> بث مباشر: <span id="watchingName"></span></div>
+                            <video id="adminVideo" autoplay playsinline></video>
+                        </div>
+                        <button class="btn btn-danger" style="width: 100%; margin-top: 10px;" onclick="stopWatchingCamera()"><i class="fa-solid fa-video-slash"></i> إغلاق البث</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Schools -->
+            <div id="admin-schools" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-school"></i> إدارة المدارس</h2>
+                <div class="card">
+                    <h3 style="margin-bottom: 15px;">إضافة مدرسة جديدة</h3>
+                    <div class="grid-3">
+                        <div class="form-group"><label>اسم المدرسة</label><input type="text" id="schName" placeholder="مثال: مدرسة الفرقان المتوسطة"></div>
+                        <div class="form-group"><label>اسم المدير</label><input type="text" id="schPrincipal" placeholder="مثال: أ. محمد أحمد"></div>
+                        <div class="form-group"><label>اسم الوكيل</label><input type="text" id="schVice" placeholder="مثال: أ. عبدالله خالد"></div>
+                    </div>
+                    <button class="btn btn-primary" onclick="addSchool()"><i class="fa-solid fa-plus"></i> حفظ المدرسة</button>
+                </div>
+                <div class="card">
+                    <h3 style="margin-bottom: 15px;">قائمة المدارس</h3>
+                    <div class="table-responsive"><table id="tableSchools"></table></div>
+                </div>
+            </div>
+
+            <!-- Admin Students (Management & Promotion) -->
+            <div id="admin-students" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-users"></i> إدارة شؤون الطلاب</h2>
+                <div class="card">
+                    <h3 style="margin-bottom: 15px;">إضافة طالب جديد</h3>
+                    <div class="grid-3">
+                        <div class="form-group"><label>الاسم الرباعي</label><input type="text" id="stName"></div>
+                        <div class="form-group"><label>المدرسة التابع لها</label><select id="stSchool"></select></div>
+                        <div class="form-group"><label>الصف (مثال: الأول المتوسط)</label><input type="text" id="stGrade"></div>
+                        <div class="form-group"><label>الفصل / القاعة</label><input type="text" id="stSection"></div>
+                        <div class="form-group"><label>اسم المستخدم للأنظمة</label><input type="text" id="stUser"></div>
+                        <div class="form-group"><label>كلمة المرور</label><input type="text" id="stPass"></div>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="addStudent()"><i class="fa-solid fa-plus"></i> تسجيل الطالب</button>
+                </div>
+                <div class="card">
+                    <h3 style="margin-bottom: 15px;">قائمة الطلاب المسجلين</h3>
+                    <div class="table-responsive"><table id="tableStudents"></table></div>
+                </div>
+            </div>
+
+            <!-- Admin Permissions -->
+            <div id="admin-permissions" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-user-lock"></i> التحكم بصلاحيات وشاشات الطلاب</h2>
+                <div class="card" style="max-width: 600px; margin: 0 auto;">
+                    <p style="color: var(--text-light); margin-bottom: 20px; font-size: 0.9rem;">
+                        اختر الطالب من القائمة، وقم بتفعيل أو إيقاف الميزات التي تظهر في حسابه الشخصي. إيقاف الصلاحية يعني أنك أنت من سيقوم بتوثيق هذا السجل نيابة عنه عبر الإدارة لضمان الدقة والمراجعة.
+                    </p>
+                    <div class="form-group">
+                        <label>اختر الطالب لتعديل صلاحياته:</label>
+                        <select id="permStudentSelect" onchange="loadStudentPermissions()"></select>
+                    </div>
+
+                    <div id="permissionsList" style="display: none; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 20px;">
+                        <div class="permission-row">
+                            <div>
+                                <b>إظهار شاشة (تسجيل المذاكرة)</b>
+                                <div style="font-size:0.8rem; color:var(--text-light);">السماح للطالب بتسجيل حصاد المدرسة أو المذاكرة الذاتية</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="perm_canStudy"><span class="slider"></span></label>
+                        </div>
+                        <div class="permission-row">
+                            <div>
+                                <b>إظهار شاشة (الأنشطة والإثراءات)</b>
+                                <div style="font-size:0.8rem; color:var(--text-light);">السماح للطالب بتسجيل واجبات المنصة والمشاركات</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="perm_canActivity"><span class="slider"></span></label>
+                        </div>
+                        <div class="permission-row" style="background: #f3e8ff;">
+                            <div>
+                                <b>إظهار شاشة (اختبارات الوالد AI)</b>
+                                <div style="font-size:0.8rem; color:var(--text-light);">يجب تفعيلها ليتمكن الطالب من رؤية الاختبارات المرسلة إليه وحلها.</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="perm_canAiExams"><span class="slider"></span></label>
+                        </div>
+                        <div style="padding: 15px; background: #f8fafc; border-top: 1px solid var(--border);">
+                            <button class="btn btn-primary" style="width:100%;" onclick="saveStudentPermissions()"><i class="fa-solid fa-save"></i> حفظ الصلاحيات</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin AI Exams -->
+            <div id="admin-aiexams" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-robot" style="color:var(--purple);"></i> اختبارات ومراجعة الوالد (بالذكاء الاصطناعي)</h2>
+                
+                <div class="grid-2">
+                    <!-- Create Exam -->
+                    <div class="card" style="border-top: 4px solid var(--purple);">
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-wand-magic-sparkles"></i> إنشاء اختبار ذكي جديد</h3>
+                        <div class="form-group"><label>الطالب المستهدف</label><select id="aiExStudent" onchange="filterSubjectsByStudent('aiExStudent', 'aiExSubject')"></select></div>
+                        <div class="form-group"><label>المادة</label><select id="aiExSubject"></select></div>
+                        <div class="form-group"><label>عنوان الاختبار (نطاق المذاكرة)</label><input type="text" id="aiExTitle" placeholder="مثال: مراجعة الوحدة الأولى - ص 10 إلى 15"></div>
+                        
+                        <!-- PDF Upload Area -->
+                        <div style="background: #faf5ff; padding: 20px; border-radius: 12px; border: 2px dashed var(--purple); margin-bottom: 20px; text-align: center;">
+                            <i class="fa-solid fa-file-pdf" style="font-size: 2.5rem; color: var(--purple); margin-bottom: 10px;"></i>
+                            <h4 style="color: var(--purple); margin-bottom: 5px;">مُولّد الأسئلة الذكي من ملف PDF</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">
+                                ارفع ملف الـ PDF لصفحات الكتاب التي ذاكرها الطالب. سيقرأه النظام، يولد أسئلة متنوعة (خيارات، صح وخطأ، مقالي)، ثم <b>يتخلص من الملف فوراً</b> دون تخزينه لعدم استهلاك مساحة.
+                            </p>
+                            
+                            <input type="file" id="aiPdfInput" accept="application/pdf" style="display:none;" onchange="processPdfForExams(event)">
+                            <button class="btn btn-purple" onclick="document.getElementById('aiPdfInput').click()"><i class="fa-solid fa-cloud-arrow-up"></i> رفع PDF وتوليد الأسئلة آلياً</button>
+                            
+                            <div id="aiLoadingIndicator" style="display:none; margin-top:15px; color:var(--purple); font-weight:bold;">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i> جاري استخراج النص وتحليل الذكاء الاصطناعي... الرجاء الانتظار
+                            </div>
+                        </div>
+
+                        <!-- Manual Question Builder -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">
+                            <h4 style="color: var(--dark);">الأسئلة المُعدة للاختبار:</h4>
+                            <button class="btn btn-outline btn-small" onclick="addManualDraftQuestion()"><i class="fa-solid fa-plus"></i> إضافة سؤال يدوياً</button>
+                        </div>
+                        
+                        <div id="aiQuestionsContainer">
+                            <div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem;">لم يتم إضافة أسئلة بعد. ارفع ملف PDF أو أضف يدوياً.</div>
+                        </div>
+                        
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label>حالة إتاحة الاختبار للطالب (القفل):</label>
+                            <select id="aiExStatus">
+                                <option value="hidden">🔒 مخفي تماماً (الطالب لا يعلم بوجوده)</option>
+                                <option value="preview">👁️ متاح للاستعراض فقط (يرى الأسئلة للتحضير، الإجابة مقفلة)</option>
+                                <option value="open">✍️ مفتوح للحل (متاح للإجابة والتسليم وأنت بجانبه)</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-success" style="width: 100%; font-size: 1.1rem; padding: 15px;" onclick="saveAiExam()"><i class="fa-solid fa-paper-plane"></i> اعتماد الاختبار وإرساله</button>
+                    </div>
+
+                    <!-- Manage Exams -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-list-check"></i> إدارة الاختبارات المرسلة والتقييم</h3>
+                        <div id="aiExamsAdminList" style="display:flex; flex-direction:column; gap:15px;">
+                            <!-- Exams will be listed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Attendance -->
+            <div id="admin-attendance" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-calendar-check"></i> سجل الحضور والغياب</h2>
+                <div class="card">
+                    <div class="grid-4">
+                        <div class="form-group"><label>الطالب</label><select id="attStudent"></select></div>
+                        <div class="form-group"><label>التاريخ</label><input type="date" id="attDate"></div>
+                        <div class="form-group"><label>الحالة</label>
+                            <select id="attStatus">
+                                <option value="غياب بعذر">غياب بعذر</option><option value="غياب بدون عذر">غياب بدون عذر</option>
+                                <option value="تأخر صباحي">تأخر صباحي</option><option value="خروج مبكر">خروج مبكر</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>ملاحظات/السبب</label><input type="text" id="attNotes" placeholder="مثال: موعد مستشفى"></div>
+                    </div>
+                    <button class="btn btn-warning" onclick="saveAttendance()"><i class="fa-solid fa-clipboard-user"></i> توثيق الحالة</button>
+                </div>
+                <div class="card">
+                    <div class="table-responsive"><table id="tableAttendance"></table></div>
+                </div>
+            </div>
+
+            <!-- Admin Exams -->
+            <div id="admin-exams" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-file-signature"></i> رصد درجات المدارس ونافس</h2>
+                <div class="card">
+                    <div class="grid-3">
+                        <div class="form-group"><label>الطالب</label><select id="exStudent" onchange="filterSubjectsByStudent('exStudent', 'exSubject')"></select></div>
+                        <div class="form-group"><label>المادة (حسب مدرسة الطالب)</label><select id="exSubject"></select></div>
+                        <div class="form-group"><label>نوع الاختبار</label><select id="exType"></select></div>
+                        <div class="form-group"><label>جهة الاختبار (المصدر)</label><select id="exSource"></select></div>
+                        <div class="form-group"><label>التاريخ</label><input type="date" id="exDate"></div>
+                        <div class="grid-2">
+                            <div class="form-group"><label>الدرجة الحاصل عليها</label><input type="number" step="0.5" id="exScore"></div>
+                            <div class="form-group"><label>الدرجة الكلية (من)</label><input type="number" value="10" id="exMax"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-success" onclick="saveExam()"><i class="fa-solid fa-check-double"></i> حفظ الدرجة</button>
+                </div>
+                <div class="card">
+                    <div class="table-responsive"><table id="tableExams"></table></div>
+                </div>
+            </div>
+
+            <!-- Admin Reports (Comprehensive) -->
+            <div id="admin-reports" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-file-invoice"></i> التقرير الشامل (Report Card)</h2>
+                <div class="card" style="background: #eff6ff; border-color: #bfdbfe;">
+                    <div class="grid-3">
+                        <div class="form-group"><label>اختر الطالب لإصدار تقريره:</label><select id="repStudent" onchange="generateComprehensiveReport()"></select></div>
+                        <div class="form-group"><label>تصفية من تاريخ:</label><input type="date" id="repFrom" onchange="generateComprehensiveReport()"></div>
+                        <div class="form-group"><label>إلى تاريخ:</label><input type="date" id="repTo" onchange="generateComprehensiveReport()"></div>
+                    </div>
+                </div>
+
+                <div id="reportContainer" style="display: none;">
+                    <div class="card report-card" id="printArea">
+                        <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px dashed var(--border);">
+                            <h1 style="color: var(--primary-dark); margin-bottom: 5px;">كشف الأداء الأكاديمي الشامل</h1>
+                            <h3 id="repStName" style="color: var(--dark); font-size: 1.8rem; margin-bottom: 5px;"></h3>
+                            <h4 id="repStSchool" style="color: var(--primary); margin-bottom: 10px;"></h4>
+                            <p id="repStDetails" style="color: var(--text-light); font-size: 0.9rem;"></p>
+                        </div>
+
+                        <!-- Statistics -->
+                        <div class="grid-4" style="margin-bottom: 30px;">
+                            <div class="stat-box"><div style="font-size: 2rem;">🎯</div><div class="stat-number" id="repAvgScore">0%</div><div>المتوسط العام للاختبارات</div></div>
+                            <div class="stat-box"><div style="font-size: 2rem;">⏱️</div><div class="stat-number" id="repStudyHours">0</div><div>ساعات المذاكرة الموثقة</div></div>
+                            <div class="stat-box"><div style="font-size: 2rem;">⚠️</div><div class="stat-number" id="repAbsence" style="color: var(--danger);">0</div><div>أيام الغياب</div></div>
+                            <div class="stat-box"><div style="font-size: 2rem;">🏆</div><div class="stat-number" id="repXP" style="color: var(--warning);">0</div><div>نقاط الإنجاز (XP)</div></div>
+                        </div>
+
+                        <!-- Details Tables -->
+                        <h3 style="margin-bottom: 10px; color: var(--purple);"><i class="fa-solid fa-robot"></i> تقييمات مراجعة الوالد (AI)</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableAiExams"></table></div>
+
+                        <h3 style="margin-bottom: 10px; color: var(--primary);"><i class="fa-solid fa-file-signature"></i> سجل الاختبارات والقياس الخارجي</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableExams"></table></div>
+
+                        <h3 style="margin-bottom: 10px; color: var(--secondary);"><i class="fa-solid fa-book-open"></i> إنجاز المذاكرة والمراجعة (الصفحات)</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableStudy"></table></div>
+                        
+                        <h3 style="margin-bottom: 10px; color: var(--warning);"><i class="fa-solid fa-medal"></i> الأنشطة والإثراءات</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableActivities"></table></div>
+                    </div>
+                    <button class="btn btn-dark" onclick="window.print()"><i class="fa-solid fa-print"></i> طباعة التقرير</button>
+                </div>
+            </div>
+
+            <!-- Admin Settings & Structure -->
+            <div id="admin-settings" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-gear"></i> الإعدادات الأكاديمية (الكادر والمواد)</h2>
+                
+                <div class="grid-2">
+                    <!-- Teachers -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-chalkboard-user"></i> كادر التعليم (المعلمين)</h3>
+                        <div class="grid-2" style="margin-bottom:10px;">
+                            <input type="text" id="setTeacherName" placeholder="اسم المعلم">
+                            <select id="setTeacherSchool"><option value="">المدرسة التابع لها</option></select>
+                        </div>
+                        <button class="btn btn-primary" style="width:100%; margin-bottom:15px;" onclick="addTeacher()">إضافة المعلم للكادر</button>
+                        <div class="table-responsive"><table id="tableSetTeachers"></table></div>
+                    </div>
+
+                    <!-- Subjects -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-book"></i> المواد الدراسية وربطها</h3>
+                        <div class="grid-2" style="margin-bottom:10px;">
+                            <input type="text" id="setSubName" placeholder="اسم المادة">
+                            <input type="text" id="setSubGrade" placeholder="الصف (مهم للربط)">
+                            <select id="setSubSchool" onchange="filterTeachersBySchool()"><option value="">المدرسة</option></select>
+                            <select id="setSubTeacher"><option value="">المعلم (اختر المدرسة أولاً)</option></select>
+                            <select id="setSubTerm" style="grid-column: span 2;"><option value="الفصل الأول">الفصل الأول</option><option value="الفصل الثاني">الفصل الثاني</option><option value="الفصل الثالث">الفصل الثالث</option></select>
+                        </div>
+                        <button class="btn btn-primary" style="width:100%; margin-bottom:15px;" onclick="addSubject()">حفظ المادة وربطها</button>
+                        <div class="table-responsive"><table id="tableSetSubjects"></table></div>
+                    </div>
+
+                    <!-- Exam Config -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-sliders"></i> تهيئة أنواع الاختبارات</h3>
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <input type="text" id="setExType" placeholder="مثال: شهري، نهائي، فتري">
+                            <button class="btn btn-info" style="background:var(--info); color:white; border:none;" onclick="addArraySetting('examTypes', 'setExType')">إضافة</button>
+                        </div>
+                        <ul id="listExTypes" style="list-style:none; padding:0;"></ul>
+                    </div>
+
+                    <!-- Exam Sources -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-building-columns"></i> مصادر/جهات القياس</h3>
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <input type="text" id="setExSource" placeholder="مثال: منصة مدرستي، اختبار نافس">
+                            <button class="btn btn-info" style="background:var(--info); color:white; border:none;" onclick="addArraySetting('examSources', 'setExSource')">إضافة</button>
+                        </div>
+                        <ul id="listExSources" style="list-style:none; padding:0;"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- STUDENT VIEWS -->
+            <!-- ============================================== -->
+
+            <!-- Student Dashboard -->
+            <div id="std-dashboard" class="section-view">
+                <div class="card" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                        <div>
+                            <h2 style="font-size: 2rem; margin-bottom: 5px;">مرحباً يا بطل! 🌟</h2>
+                            <p style="opacity: 0.9;" id="stdSchoolNameDisplay">مستقبلك يُبنى اليوم. دعنا نبدأ جلسة التركيز.</p>
+                        </div>
+                        <div style="text-align: center; background: rgba(0,0,0,0.2); padding: 15px 25px; border-radius: 15px;">
+                            <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 5px;">نقاط الخبرة (XP)</div>
+                            <div style="font-size: 2.5rem; font-weight: 800; color: #fbbf24;" id="stdXpDisplay">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card" style="text-align: center; border: 2px dashed var(--secondary);">
+                        <h3 style="color: var(--secondary); margin-bottom: 15px;"><i class="fa-solid fa-stopwatch"></i> مؤقت المذاكرة الفعلي</h3>
+                        <div id="stdTimerDisplay" class="timer-display">00:00:00</div>
+                        <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 20px;">سيتم تفعيل كاميرا المتابعة تلقائياً عند البدء</p>
+                        <button id="btnToggleSession" class="btn btn-success" style="width: 100%; font-size: 1.2rem; padding: 15px;" onclick="toggleStudySession()"><i class="fa-solid fa-play"></i> بدء المذاكرة</button>
+                        
+                        <div id="studentVideoContainer" style="display: none; margin-top: 20px;">
+                            <div class="cam-container" style="max-width: 250px; margin: 0 auto; border-color: var(--danger);">
+                                <div class="cam-label" style="background:var(--danger);"><div class="pulse-red" style="background:white;"></div> بث مباشر للإدارة</div>
+                                <video id="studentVideo" autoplay muted playsinline></video>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-chart-line"></i> ملخص إنجازاتي</h3>
+                        <div class="table-responsive"><table id="stdSummaryTable"></table></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Study & Harvest -->
+            <div id="std-study" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-book-open"></i> تسجيل الإنجاز الأكاديمي</h2>
+                
+                <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn btn-primary flex-1" id="tabHarvest" onclick="switchStdLogType('harvest')">📝 حصاد المدرسة</button>
+                    <button class="btn btn-outline flex-1" id="tabStudy" onclick="switchStdLogType('study')">🧠 مذاكرة ذاتية</button>
+                    <button class="btn btn-outline flex-1" id="tabReview" onclick="switchStdLogType('review')">🔄 مراجعة</button>
+                </div>
+
+                <div class="card">
+                    <input type="hidden" id="currentLogType" value="harvest">
+                    <div class="form-group"><label>المادة (الخاصة بصفك ومدرستك)</label><select id="logSubject"></select></div>
+                    
+                    <div id="harvestFields" class="grid-2">
+                        <div class="form-group"><label>رقم الحصة</label><input type="number" id="logPeriod"></div>
+                        <div class="form-group"><label>عنوان الدرس</label><input type="text" id="logLesson"></div>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group"><label>من صفحة</label><input type="number" id="logStart"></div>
+                        <div class="form-group"><label>إلى صفحة</label><input type="number" id="logEnd"></div>
+                    </div>
+                    
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="saveStudentLog()"><i class="fa-solid fa-save"></i> حفظ في سجلي السحابي (+10 XP)</button>
+                </div>
+            </div>
+
+            <!-- Student Activities -->
+            <div id="std-activities" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-medal"></i> الأنشطة والإثراءات</h2>
+                <div class="card">
+                    <p style="margin-bottom: 15px; color: var(--text-light);">هل قمت بحل واجب على منصة مدرستي؟ أو شاركت في نشاط مدرسي؟ وثقه هنا.</p>
+                    <div class="grid-2">
+                        <div class="form-group"><label>نوع الإنجاز</label>
+                            <select id="actType"><option value="حل واجب منصة">حل واجب منصة</option><option value="مشاهدة إثراء">مشاهدة إثراء</option><option value="مشاركة صفية">مشاركة صفية مميزة</option><option value="مشروع بحثي">مشروع بحثي</option></select>
+                        </div>
+                        <div class="form-group"><label>المادة (اختياري)</label><select id="actSubject"><option value="">-- عام / غير محدد --</option></select></div>
+                    </div>
+                    <div class="form-group"><label>وصف الإنجاز</label><input type="text" id="actTitle" placeholder="مثال: حل واجب الرياضيات الأسبوعي على منصة مدرستي"></div>
+                    <button class="btn btn-warning" style="width: 100%;" onclick="saveActivity()"><i class="fa-solid fa-star"></i> اعتماد الإنجاز (+20 XP)</button>
+                </div>
+                
+                <div class="card">
+                    <h3 style="margin-bottom: 15px;">سجل أنشطتي</h3>
+                    <div class="table-responsive"><table id="tableStdActivities"></table></div>
+                </div>
+            </div>
+
+            <!-- Student AI Exams -->
+            <div id="std-aiexams" class="section-view">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                    <h2 class="section-title" style="color:var(--purple); margin:0;"><i class="fa-solid fa-file-circle-question"></i> اختبارات ومراجعة الوالد</h2>
+                    <span class="badge badge-purple" style="font-size:1rem;">تحفيز وتقييم مستمر</span>
+                </div>
+                <p style="margin-bottom: 20px; color: var(--text-light); background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">هنا تظهر الاختبارات المصممة خصيصاً لقياس مستوى فهمك. بعضها قد يكون متاحاً للاستعراض فقط للاستعداد لها وتجهيز إجاباتك.</p>
+                
+                <div id="stdAiExamsList" style="display:flex; flex-direction:column; gap:20px;">
+                    <!-- Exams rendered here -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal للترقية -->
+<div id="promoteModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 style="margin:0;"><i class="fa-solid fa-level-up-alt"></i> ترقية/ترحيل الطالب</h3>
+            <button class="btn btn-outline btn-small" onclick="closeModal('promoteModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p style="margin-bottom: 15px; font-size: 0.9rem; color: var(--danger); background: #fee2e2; padding: 10px; border-radius: 8px;">
+            ملاحظة: سيتم نقل الطالب للصف الجديد وتغيير مواده تلقائياً. **أرشيفه ودرجاته القديمة ستبقى محفوظة في التقارير ولن تُحذف.**
+        </p>
+        <input type="hidden" id="promStudentId">
+        <div class="form-group"><label>اسم الطالب:</label><input type="text" id="promName" readonly style="background: #e2e8f0;"></div>
+        <div class="form-group"><label>الصف الدراسي الجديد:</label><input type="text" id="promNewGrade" placeholder="مثال: الثاني المتوسط"></div>
+        <div class="form-group"><label>الفصل / القاعة الجديدة:</label><input type="text" id="promNewSection"></div>
+        <button class="btn btn-success" style="width: 100%; margin-top: 10px;" onclick="executePromotion()"><i class="fa-solid fa-check"></i> اعتماد الترقية</button>
+    </div>
+</div>
+
+<!-- Modal لتقييم الاختبار (المدير) -->
+<div id="gradeAiExamModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <h3 style="margin:0; color:var(--purple);"><i class="fa-solid fa-check-to-slot"></i> المراجعة والتصحيح الآلي/اليدوي</h3>
+            <button class="btn btn-outline btn-small" onclick="closeModal('gradeAiExamModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <input type="hidden" id="gradeExamId">
+        <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">الأسئلة الموضوعية (خيارات، صح وخطأ) يتم تصحيحها آلياً. راجع الأسئلة المقالية وعدل الدرجة النهائية حسب تقييمك.</p>
+        
+        <div id="gradeExamContent" style="margin-bottom: 20px;"></div>
+        
+        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+            <div class="grid-2">
+                <div class="form-group"><label>الدرجة الممنوحة (من)</label><input type="number" id="gradeScore" style="color:var(--success); font-weight:bold; font-size:1.2rem;"></div>
+                <div class="form-group"><label>الدرجة النهائية الكلية</label><input type="number" id="gradeMax" value="10"></div>
+            </div>
+            <button class="btn btn-purple" style="width: 100%;" onclick="submitAiExamGrade()"><i class="fa-solid fa-award"></i> اعتماد التقييم النهائي وتوثيقه</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ======================================================== -->
+<!-- ENGINE & LOGIC (V4 - AI & Monitoring Excellence Edition) -->
+<!-- ======================================================== -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const NETLIFY_FIREBASE_CONFIG = {
+        apiKey: "AIzaSyC0e3tQOKFNFK4od16RsWGSSPipCporeis",
+        authDomain: "school-27abe.firebaseapp.com",
+        projectId: "school-27abe",
+        storageBucket: "school-27abe.firebasestorage.app",
+        messagingSenderId: "842873944470",
+        appId: "1:842873944470:web:3a658865dc961b2b10c5b7"
+    }; 
+
+    const isCanvas = (typeof __firebase_config !== 'undefined') && (!window.location.hostname.includes('netlify.app'));
+    const firebaseConfig = isCanvas ? JSON.parse(__firebase_config) : NETLIFY_FIREBASE_CONFIG;
+    
+    const AI_API_KEY = ""; 
+
+    const DEFAULT_DB = { 
+        admin: { user: 'admin', pass: '12345' }, 
+        settings: { examTypes: ['اختبار قصير', 'اختبار شهري', 'اختبار فصلي', 'اختبار نهائي'], examSources: ['المدرسة', 'منصة مدرستي', 'اختبار نافس', 'أخرى'] },
+        schools: [], students: [], teachers: [], subjects: [], 
+        harvest: [], study: [], review: [], 
+        exams: [], attendance: [], activities: [],
+        aiExams: [], 
+        activeSessions: {}, sessionLogs: [] 
+    };
+    
+    let db = DEFAULT_DB;
+    let dbRef = null;
+    let firestoreDb = null;
+    
+    window.currentUser = null;
+    window.studentTimerInterval = null;
+    window.adminPollingInterval = null;
+    window.myPeer = null;           
+    window.localVideoStream = null;
+    
+    window.draftExamQuestions = [];
+
+    function $(id) { return document.getElementById(id); }
+    function v(id) { return $(id) ? $(id).value.trim() : ''; }
+    function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+    function getTodayIso() { return new Date().toISOString().split('T')[0]; }
+    function showToast(msg, bgClass) {
+        let t = $('toast'); t.innerHTML = msg; t.className = `${bgClass} show`;
+        setTimeout(() => t.className = '', 3500);
+    }
+    window.closeModal = function(id) { $(id).style.display = 'none'; };
+    window.nav = function(viewId, el) {
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        el.classList.add('active');
+        document.querySelectorAll('.section-view').forEach(s => s.classList.remove('active'));
+        $(viewId).classList.add('active');
+        if(window.innerWidth <= 768) $('sidebar').classList.remove('open');
+        refreshDataUI(); 
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    firestoreDb = getFirestore(app);
+
+    const initAuth = async () => {
+        try {
+            if (isCanvas && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else { await signInAnonymously(auth); }
+        } catch(e) { console.warn("Auth err:", e); }
+    };
+    initAuth();
+
+    onAuthStateChanged(auth, (user) => {
+        if(user) {
+            dbRef = doc(firestoreDb, isCanvas ? `artifacts/${__app_id}/public/data/qais_system/main_database` : 'qais_system/main_database');
+            
+            onSnapshot(dbRef, (docSnap) => {
+                const csLogin = $('cloudStatusLogin'); const csApp = $('cloudStatusApp');
+                if(csLogin) { csLogin.innerHTML = '<i class="fa-solid fa-cloud-check"></i> متصل بالسحابة'; csLogin.classList.add('connected'); }
+                if(csApp) { csApp.innerHTML = '<i class="fa-solid fa-cloud-check"></i> السحابة متصلة'; csApp.classList.add('connected'); }
+
+                if(docSnap.exists()) {
+                    let cloudData = docSnap.data();
+                    db = { ...DEFAULT_DB, ...cloudData };
+                    ['schools', 'exams', 'attendance', 'activities', 'aiExams'].forEach(arr => { if(!db[arr]) db[arr] = []; });
+                    
+                    // --- مُعالج بيانات التوافقية (Auto-Migration) ---
+                    // هذا الكود يتأكد أن أي طالب أو مادة قديمة (بدون مدرسة) يتم إضافتها لمدرسة افتراضية لكي تظهر في الشاشة ولا تختفي.
+                    let needsSave = false;
+                    
+                    if (db.schools.length === 0 && (db.students.length > 0 || db.subjects.length > 0)) {
+                        let defaultSchoolId = generateId();
+                        db.schools.push({ id: defaultSchoolId, name: 'المدرسة الرئيسية (سابقة)', principal: '-', vicePrincipal: '-' });
+                        needsSave = true;
+                        
+                        db.students.forEach(s => { if (!s.schoolId) s.schoolId = defaultSchoolId; });
+                        db.teachers.forEach(t => { if (!t.schoolId) t.schoolId = defaultSchoolId; });
+                        db.subjects.forEach(sub => { if (!sub.schoolId) sub.schoolId = defaultSchoolId; });
+                    }
+
+                    db.students.forEach(st => { 
+                        if(!st.permissions) { 
+                            st.permissions = { canStudy: true, canActivity: true, canAiExams: true }; 
+                            needsSave = true;
+                        } 
+                    });
+
+                    if(!db.settings) { db.settings = DEFAULT_DB.settings; needsSave = true; }
+                    
+                    refreshDataUI();
+
+                    // حفظ التعديلات التوافقية في السحابة بصمت
+                    if(needsSave) { setDoc(dbRef, db).catch(e => console.warn(e)); }
+
+                } else {
+                    setDoc(dbRef, DEFAULT_DB).catch(console.warn);
+                }
+            }, (err) => { console.warn("Snap err", err); });
+        }
+    });
+
+    function saveDb() { 
+        if(dbRef && firestoreDb && auth.currentUser) {
+            setDoc(dbRef, db).then(() => showToast('<i class="fa-solid fa-cloud-arrow-up"></i> تم الحفظ في السحابة', 'bg-success'))
+            .catch(e => showToast('خطأ في الاتصال بالسحابة!', 'bg-error')); 
+        }
+    }
+
+    // --- Authentication ---
+    window.login = function() {
+        const u = v('loginUser'), p = v('loginPass');
+        if (u === db.admin.user && p === db.admin.pass) {
+            window.currentUser = { role: 'admin', name: 'المدير' };
+            $('loginScreen').style.display = 'none';
+            $('app').style.display = 'flex';
+            $('navAdmin').style.display = 'block';
+            $('navStudent').style.display = 'none';
+            $('userRoleText').innerText = 'الإدارة العليا للمدارس';
+            $('topWelcome').innerText = 'أهلاً بك في مركز القيادة الشامل';
+            nav('admin-dashboard', document.querySelector('#navAdmin .nav-link'));
+            startAdminPolling();
+        } else {
+            const student = db.students.find(s => s.user === u && s.pass === p);
+            if (student) {
+                window.currentUser = { role: 'student', ...student };
+                let sch = db.schools.find(x => x.id === student.schoolId);
+                let schName = sch ? sch.name : '';
+                
+                let p = student.permissions;
+                $('navStdStudy').style.display = p.canStudy ? 'flex' : 'none';
+                $('navStdActivities').style.display = p.canActivity ? 'flex' : 'none';
+                $('navStdAiExams').style.display = p.canAiExams ? 'flex' : 'none';
+
+                $('loginScreen').style.display = 'none';
+                $('app').style.display = 'flex';
+                $('navAdmin').style.display = 'none';
+                $('navStudent').style.display = 'block';
+                $('userRoleText').innerText = `طالب | ${student.grade}`;
+                $('topWelcome').innerText = `أهلاً بك يا بطل: ${student.name} 🎓`;
+                if(schName) $('stdSchoolNameDisplay').innerText = `مدرستك: ${schName} | دعنا نبدأ جلسة التركيز.`;
+                
+                let firstAvailableNav = p.canStudy ? 'std-dashboard' : (p.canActivity ? 'std-activities' : 'std-aiexams');
+                nav(firstAvailableNav, document.querySelector('#navStudent .nav-link'));
+                checkExistingSession();
+            } else { showToast('بيانات الدخول غير صحيحة', 'bg-error'); }
+        }
+    };
+
+    window.logout = function() {
+        if(window.currentUser?.role === 'student') stopStudentCamera();
+        if(window.currentUser?.role === 'admin') stopWatchingCamera();
+        window.currentUser = null;
+        clearInterval(window.studentTimerInterval); clearInterval(window.adminPollingInterval);
+        $('app').style.display = 'none'; $('loginScreen').style.display = 'flex';
+        $('loginUser').value = ''; $('loginPass').value = '';
+    };
+
+    function refreshDataUI() {
+        if(!window.currentUser) return;
+        if(window.currentUser.role === 'admin') {
+            updateAdminDashboardStats();
+            renderAdminTables();
+            populateAdminDropdowns();
+            renderAdminAiExams();
+            if($('admin-reports').classList.contains('active')) generateComprehensiveReport();
+        } else {
+            updateStudentDashboardStats();
+            populateStudentDropdowns();
+            renderStudentTables();
+            renderStudentAiExams();
+        }
+    }
+
+    // --- WebRTC Camera ---
+    function startStudentCamera() {
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+            window.localVideoStream = stream;
+            $('studentVideo').srcObject = stream;
+            $('studentVideoContainer').style.display = 'block';
+            let peerId = 'qais-v4-std-' + window.currentUser.id;
+            window.myPeer = new Peer(peerId);
+            window.myPeer.on('connection', conn => {
+                conn.on('data', data => { if (data === 'request_stream') window.myPeer.call(conn.peer, window.localVideoStream); });
+            });
+        }).catch(err => console.warn("Camera error"));
+    }
+    function stopStudentCamera() {
+        if (window.localVideoStream) window.localVideoStream.getTracks().forEach(track => track.stop());
+        $('studentVideoContainer').style.display = 'none';
+        if (window.myPeer) { window.myPeer.destroy(); window.myPeer = null; }
+    }
+    window.watchStudentCamera = function(studentId, studentName) {
+        if (!window.myPeer) {
+            window.myPeer = new Peer('qais-v4-admin-' + Math.floor(Math.random()*1000));
+            window.myPeer.on('call', call => {
+                call.answer(); 
+                call.on('stream', remoteStream => {
+                    $('adminVideo').srcObject = remoteStream;
+                    $('adminVideoWrapper').style.display = 'block';
+                    $('watchingName').innerText = studentName;
+                    showToast('تم التقاط البث المباشر', 'bg-success');
+                });
+            });
+        }
+        showToast('جاري الاتصال بجهاز الطالب...', 'bg-info');
+        setTimeout(() => {
+            let conn = window.myPeer.connect('qais-v4-std-' + studentId);
+            if(conn) {
+                conn.on('open', () => { conn.send('request_stream'); });
+                conn.on('error', () => { showToast('الطالب غير متصل أو رافض للكاميرا', 'bg-error'); });
+            }
+        }, 1500);
+    };
+    window.stopWatchingCamera = function() {
+        $('adminVideo').srcObject = null; $('adminVideoWrapper').style.display = 'none';
+        if (window.myPeer) { window.myPeer.destroy(); window.myPeer = null; }
+    };
+
+    // ==========================================
+    // --- PERMISSIONS SYSTEM LOGIC ---
+    // ==========================================
+    window.loadStudentPermissions = function() {
+        let sId = v('permStudentSelect');
+        if(!sId) { $('permissionsList').style.display = 'none'; return; }
+        
+        let st = db.students.find(s => s.id === sId);
+        if(st && st.permissions) {
+            $('perm_canStudy').checked = st.permissions.canStudy;
+            $('perm_canActivity').checked = st.permissions.canActivity;
+            $('perm_canAiExams').checked = st.permissions.canAiExams;
+            $('permissionsList').style.display = 'block';
+        }
+    };
+
+    window.saveStudentPermissions = function() {
+        let sId = v('permStudentSelect');
+        let st = db.students.find(s => s.id === sId);
+        if(st) {
+            st.permissions = {
+                canStudy: $('perm_canStudy').checked,
+                canActivity: $('perm_canActivity').checked,
+                canAiExams: $('perm_canAiExams').checked
+            };
+            saveDb(); showToast('تم تحديث صلاحيات الطالب بنجاح', 'bg-success');
+        }
+    };
+
+
+    // ==========================================
+    // --- AI PARENT EXAMS LOGIC (PDF Parsing & Gemini) ---
+    // ==========================================
+    
+    // 1. قراءة الـ PDF واستخراج النص في متصفح العميل (بدون حفظه)
+    window.processPdfForExams = async function(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        
+        if (file.type !== "application/pdf") {
+            showToast('الرجاء رفع ملف بصيغة PDF فقط.', 'bg-error');
+            return;
+        }
+
+        $('aiLoadingIndicator').style.display = 'block';
+        
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+            
+            let fullText = '';
+            const maxPages = Math.min(pdf.numPages, 20); 
+            for(let i = 1; i <= maxPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                const strings = content.items.map(item => item.str);
+                fullText += strings.join(' ') + '\n';
+            }
+            
+            if(fullText.trim() === '') {
+                throw new Error("الملف لا يحتوي على نص قابل للقراءة (قد يكون مجرد صور).");
+            }
+
+            await generateQuestionsWithGemini(fullText);
+            
+        } catch (e) {
+            console.error("PDF Parsing Error: ", e);
+            showToast('حدث خطأ أثناء قراءة الملف: ' + e.message, 'bg-error');
+        } finally {
+            $('aiLoadingIndicator').style.display = 'none';
+            event.target.value = ''; 
+        }
+    };
+
+    // 2. التواصل مع Gemini API لبناء الأسئلة بصيغة JSON مهيكلة
+    async function generateQuestionsWithGemini(text) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${AI_API_KEY}`;
+        
+        const promptText = `
+        أنت معلم خبير. بناءً على النص التالي المستخرج من كتاب أو مذكرة الطالب، قم بتوليد 5 أسئلة لاختبار فهمه.
+        أريد الأسئلة أن تكون متنوعة في الأنواع التالية حصراً:
+        1. خيارات متعددة (mcq): 4 خيارات واضحة.
+        2. صح أو خطأ (tf): خيارين فقط (صح، خطأ).
+        3. سؤال مباشر (direct): سؤال مقالي قصير يحتاج إجابة نصية.
+
+        النص المدروس:
+        """${text.substring(0, 10000)}"""
+        `;
+
+        const payload = {
+            contents: [{ parts: [{ text: promptText }] }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: {
+                            type: { type: "STRING", description: "Must be exactly: 'mcq', 'tf', or 'direct'" },
+                            question: { type: "STRING", description: "نص السؤال" },
+                            options: { type: "ARRAY", items: { type: "STRING" }, description: "المشتتات والخيارات (4 للخيار المتعدد، فارغ للأنواع الأخرى)" },
+                            correctAnswer: { type: "STRING", description: "الإجابة الصحيحة الدقيقة (للخيارات أو الصح والخطأ) أو الإجابة النموذجية (للسؤال المباشر)" }
+                        },
+                        required: ["type", "question", "options", "correctAnswer"]
+                    }
+                }
+            }
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (result.error) throw new Error(result.error.message);
+
+            const responseText = result.candidates[0].content.parts[0].text;
+            const generatedQuestions = JSON.parse(responseText);
+
+            generatedQuestions.forEach(q => {
+                window.draftExamQuestions.push({
+                    type: q.type,
+                    question: q.question,
+                    options: q.options || ['', '', '', ''],
+                    correctAnswer: q.correctAnswer
+                });
+            });
+
+            renderDraftQuestions();
+            showToast('تم استخراج الأسئلة بنجاح! راجعها الآن.', 'bg-success');
+
+        } catch (error) {
+            console.error("Gemini API Error:", error);
+            showToast('خطأ في توليد الأسئلة الذكية، يرجى المحاولة لاحقاً.', 'bg-error');
+        }
+    }
+
+    // 3. إدارة مسودة الأسئلة في واجهة الإدارة
+    window.addManualDraftQuestion = function() {
+        window.draftExamQuestions.push({ type: 'direct', question: '', options: ['', '', '', ''], correctAnswer: '' });
+        renderDraftQuestions();
+    };
+
+    window.removeDraftQuestion = function(index) {
+        window.draftExamQuestions.splice(index, 1);
+        renderDraftQuestions();
+    };
+
+    window.updateDraftField = function(index, field, value) {
+        window.draftExamQuestions[index][field] = value;
+    };
+
+    window.updateDraftOption = function(qIndex, optIndex, value) {
+        if(!window.draftExamQuestions[qIndex].options) window.draftExamQuestions[qIndex].options = [];
+        window.draftExamQuestions[qIndex].options[optIndex] = value;
+    };
+
+    window.updateDraftType = function(index, type) {
+        window.draftExamQuestions[index].type = type;
+        renderDraftQuestions();
+    };
+
+    function renderDraftQuestions() {
+        let container = $('aiQuestionsContainer');
+        if(window.draftExamQuestions.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem;">لم يتم إضافة أسئلة بعد. ارفع ملف PDF أو أضف يدوياً.</div>';
+            return;
+        }
+
+        let html = '';
+        window.draftExamQuestions.forEach((q, i) => {
+            html += `
+            <div class="q-box" id="draft_q_${i}">
+                <i class="fa-solid fa-trash q-remove" onclick="removeDraftQuestion(${i})" title="حذف السؤال"></i>
+                <div class="grid-2">
+                    <div class="form-group"><label>نوع السؤال</label>
+                        <select onchange="updateDraftType(${i}, this.value)">
+                            <option value="direct" ${q.type==='direct'?'selected':''}>سؤال مقالي مباشر</option>
+                            <option value="mcq" ${q.type==='mcq'?'selected':''}>خيارات متعددة (اختيار)</option>
+                            <option value="tf" ${q.type==='tf'?'selected':''}>صح أو خطأ</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>السؤال (${i+1})</label>
+                        <input type="text" value="${q.question}" onchange="updateDraftField(${i}, 'question', this.value)" placeholder="اكتب نص السؤال...">
+                    </div>
+                </div>`;
+                
+            if(q.type === 'mcq') {
+                html += `<div class="grid-4">`;
+                for(let j=0; j<4; j++) {
+                    let opt = (q.options && q.options[j]) ? q.options[j] : '';
+                    html += `<div class="form-group"><label>خيار ${j+1}</label><input type="text" value="${opt}" onchange="updateDraftOption(${i}, ${j}, this.value)"></div>`;
+                }
+                html += `</div>`;
+            }
+            
+            let ansLabel = q.type === 'direct' ? 'الإجابة النموذجية (للمراجعة)' : 'الإجابة الصحيحة الدقيقة (للتصحيح الآلي)';
+            let ansPlaceholder = q.type === 'tf' ? 'اكتب "صح" أو "خطأ"' : 'اكتب الخيار الصحيح هنا...';
+            
+            html += `<div class="form-group" style="margin-top:10px;"><label style="color:var(--secondary);">${ansLabel}</label>
+                <input type="text" value="${q.correctAnswer || ''}" onchange="updateDraftField(${i}, 'correctAnswer', this.value)" placeholder="${ansPlaceholder}" style="border-color:var(--secondary);">
+            </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    // 4. حفظ الاختبار وإرساله
+    window.saveAiExam = function() {
+        let sId = v('aiExStudent'), subId = v('aiExSubject'), title = v('aiExTitle'), status = v('aiExStatus');
+        if(!sId || !subId || !title) return showToast('أكمل بيانات الاختبار الأساسية (الطالب، المادة، العنوان)', 'bg-error');
+
+        let validQuestions = [];
+        for (let q of window.draftExamQuestions) {
+            if(q.question.trim() === '') continue;
+            let cleanQ = { type: q.type, question: q.question.trim(), correctAnswer: q.correctAnswer.trim(), studentAnswer: '' };
+            if(q.type === 'mcq') cleanQ.options = q.options.map(o => o.trim());
+            validQuestions.push(cleanQ);
+        }
+        
+        if(validQuestions.length === 0) return showToast('يجب وجود سؤال واحد صحيح على الأقل', 'bg-error');
+
+        db.aiExams.push({
+            id: generateId(), sId, subId, title, questions: validQuestions, status,
+            score: null, maxScore: validQuestions.length, 
+            isoDate: getTodayIso(), date: new Date().toLocaleDateString('ar-SA')
+        });
+
+        saveDb(); 
+        $('aiExTitle').value = ''; 
+        window.draftExamQuestions = []; 
+        renderDraftQuestions();
+        renderAdminAiExams(); 
+        showToast('تم اعتماد وحفظ الاختبار وإرساله للطالب', 'bg-success');
+    };
+
+    function renderAdminAiExams() {
+        if(!$('admin-aiexams').classList.contains('active')) return;
+        let container = $('aiExamsAdminList');
+        if(db.aiExams.length === 0) { container.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px;">لا توجد اختبارات مسجلة بعد.</div>'; return; }
+
+        let html = '';
+        [...db.aiExams].reverse().forEach(ex => {
+            let st = db.students.find(s => s.id === ex.sId);
+            let sub = db.subjects.find(s => s.id === ex.subId);
+            
+            let statusBadge = '';
+            if(ex.status === 'hidden') statusBadge = '<span class="badge badge-dark">🔒 مخفي تماماً</span>';
+            else if(ex.status === 'preview') statusBadge = '<span class="badge badge-orange">👁️ متاح للاستعراض</span>';
+            else if(ex.status === 'open') statusBadge = '<span class="badge badge-blue">✍️ مفتوح للحل</span>';
+            else if(ex.status === 'submitted') statusBadge = '<span class="badge badge-warning">⏳ بانتظار التقييم</span>';
+            else if(ex.status === 'graded') statusBadge = `<span class="badge badge-green">✅ تم التقييم (${ex.score}/${ex.maxScore})</span>`;
+
+            html += `
+                <div style="border: 1px solid var(--border); padding: 15px; border-radius: 10px; background: white; position:relative;">
+                    <button class="btn-small btn-danger" style="position:absolute; left:15px; top:15px;" onclick="delRec('aiExams', '${ex.id}')"><i class="fa-solid fa-trash"></i></button>
+                    <div style="font-weight:bold; font-size:1.1rem; color:var(--purple); margin-bottom:5px;">${ex.title}</div>
+                    <div style="font-size:0.85rem; color:var(--text-light); margin-bottom:10px;">${st?st.name:'-'} | ${sub?sub.name:'-'} | ${ex.date}</div>
+                    <div style="margin-bottom:15px;">${statusBadge} - عدد الأسئلة: ${ex.questions.length}</div>
+                    
+                    ${['hidden', 'preview', 'open'].includes(ex.status) ? `
+                        <div style="display:flex; gap:10px; align-items:center; background:#f8fafc; padding:10px; border-radius:8px;">
+                            <span style="font-size:0.85rem; font-weight:bold;">تغيير القفل:</span>
+                            <select class="form-group" style="margin:0; padding:5px; width:auto;" onchange="changeAiExamStatus('${ex.id}', this.value)">
+                                <option value="hidden" ${ex.status==='hidden'?'selected':''}>مخفي</option>
+                                <option value="preview" ${ex.status==='preview'?'selected':''}>استعراض فقط</option>
+                                <option value="open" ${ex.status==='open'?'selected':''}>مفتوح للحل</option>
+                            </select>
+                        </div>
+                    ` : ''}
+
+                    ${ex.status === 'submitted' ? `<button class="btn btn-purple btn-small" style="margin-top:10px;" onclick="openGradeExam('${ex.id}')"><i class="fa-solid fa-check-to-slot"></i> المراجعة والتصحيح (آلي ويدوي)</button>` : ''}
+                    ${ex.status === 'graded' ? `<div style="margin-top:10px; font-size:0.85rem; color:var(--secondary); font-weight:bold;"><i class="fa-solid fa-check"></i> تم التقييم ورصد الدرجة بنجاح.</div>` : ''}
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    window.changeAiExamStatus = function(id, newStatus) {
+        let ex = db.aiExams.find(x => x.id === id);
+        if(ex) { ex.status = newStatus; saveDb(); showToast('تم تغيير حالة قفل الاختبار', 'bg-success'); renderAdminAiExams(); }
+    };
+
+    // 5. التصحيح الآلي والمراجعة من قبل المدير
+    window.openGradeExam = function(id) {
+        let ex = db.aiExams.find(x => x.id === id); if(!ex) return;
+        $('gradeExamId').value = id;
+        
+        let autoScore = 0;
+        let html = `<div style="background:#f1f5f9; padding:15px; border-radius:8px; margin-bottom:15px;"><b>الاختبار: </b>${ex.title}</div>`;
+        
+        ex.questions.forEach((q, i) => {
+            let isCorrect = false;
+            let feedbackColor = 'var(--text)';
+            let typeLabel = '';
+            
+            if(q.type === 'mcq' || q.type === 'tf') {
+                typeLabel = q.type === 'mcq' ? '(اختيار)' : '(صح وخطأ)';
+                isCorrect = (q.studentAnswer.trim() === q.correctAnswer.trim());
+                if(isCorrect) { autoScore++; feedbackColor = 'green'; } 
+                else { feedbackColor = 'red'; }
+            } else {
+                typeLabel = '(مباشر/مقالي)';
+            }
+
+            html += `
+                <div style="margin-bottom:15px; border-bottom:1px dashed var(--border); padding-bottom:15px;">
+                    <div style="font-weight:bold; color:var(--dark); margin-bottom:5px;">س ${i+1} ${typeLabel}: ${q.question}</div>
+                    
+                    <div style="background:#e0f2fe; padding:10px; border-radius:6px; color:#0369a1; font-size:0.95rem; margin-bottom:5px; border-right:4px solid ${feedbackColor};">
+                        <b>إجابة الطالب:</b> ${q.studentAnswer || '<i>لم يُجب</i>'}
+                    </div>
+                    
+                    <div style="background:#f0fdf4; padding:8px; border-radius:6px; color:#15803d; font-size:0.85rem;">
+                        <b>الإجابة الصحيحة:</b> ${q.correctAnswer || '-'}
+                    </div>
+                </div>
+            `;
+        });
+        
+        $('gradeExamContent').innerHTML = html;
+        $('gradeMax').value = ex.questions.length;
+        $('gradeScore').value = autoScore; 
+        $('gradeAiExamModal').style.display = 'flex';
+    };
+
+    window.submitAiExamGrade = function() {
+        let id = $('gradeExamId').value; let ex = db.aiExams.find(x => x.id === id);
+        let score = parseFloat(v('gradeScore')), max = parseFloat(v('gradeMax'));
+        if(isNaN(score) || isNaN(max)) return showToast('أدخل الدرجات بشكل صحيح', 'bg-error');
+        
+        ex.score = score; ex.maxScore = max; ex.status = 'graded';
+        
+        db.exams.push({ 
+            id: generateId(), sId: ex.sId, subId: ex.subId, typeId: 'مراجعة AI للوالد', sourceId: 'الذكاء الاصطناعي (داخلي)', 
+            date: getTodayIso(), isoDate: getTodayIso(), score: score, max: max 
+        });
+
+        saveDb(); closeModal('gradeAiExamModal'); renderAdminAiExams();
+        showToast('تم تقييم الاختبار وتوثيقه في السجل العام بنجاح!', 'bg-success');
+    };
+
+    // ==========================================
+    // --- AI PARENT EXAMS LOGIC (STUDENT) ---
+    // ==========================================
+    function renderStudentAiExams() {
+        if(!$('std-aiexams').classList.contains('active')) return;
+        let container = $('stdAiExamsList');
+        
+        let myExams = db.aiExams.filter(ex => ex.sId === window.currentUser.id && ex.status !== 'hidden');
+        
+        if(myExams.length === 0) { 
+            container.innerHTML = `
+                <div style="text-align:center; padding:40px; background:#f8fafc; border-radius:15px; border:2px dashed var(--border);">
+                    <i class="fa-solid fa-mug-hot" style="font-size:3rem; color:var(--text-light); margin-bottom:15px;"></i>
+                    <h3 style="color:var(--text-light);">لا توجد اختبارات مراجعة حالياً</h3>
+                    <p style="font-size:0.9rem;">سيقوم والدك بإرسال الاختبارات هنا عندما تكون جاهزاً.</p>
+                </div>`;
+            return; 
+        }
+
+        let html = '';
+        [...myExams].reverse().forEach(ex => {
+            let sub = db.subjects.find(s => s.id === ex.subId);
+            
+            let boxStyle = ''; let lockMsg = ''; let isEditable = false;
+            
+            if(ex.status === 'preview') {
+                boxStyle = 'border-color: var(--warning); background: #fffbeb;';
+                lockMsg = `<div style="background:var(--warning); color:white; padding:5px 15px; border-radius:5px; font-size:0.85rem; font-weight:bold; display:inline-block; margin-bottom:15px;"><i class="fa-solid fa-eye"></i> متاح للاستعراض فقط - بانتظار فتح الإجابة من الإدارة</div>`;
+            } else if (ex.status === 'open') {
+                boxStyle = 'border-color: var(--info); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);';
+                lockMsg = `<div style="background:var(--info); color:white; padding:5px 15px; border-radius:5px; font-size:0.85rem; font-weight:bold; display:inline-block; margin-bottom:15px;"><i class="fa-solid fa-pen"></i> مفتوح للحل - ابدأ الإجابة الآن</div>`;
+                isEditable = true;
+            } else if (ex.status === 'submitted') {
+                boxStyle = 'border-color: var(--border); opacity: 0.8;';
+                lockMsg = `<div style="background:var(--text-light); color:white; padding:5px 15px; border-radius:5px; font-size:0.85rem; font-weight:bold; display:inline-block; margin-bottom:15px;"><i class="fa-solid fa-lock"></i> تم التسليم - بانتظار التقييم</div>`;
+            } else if (ex.status === 'graded') {
+                boxStyle = 'border-color: var(--secondary); background: #f0fdf4;';
+                lockMsg = `<div style="background:var(--secondary); color:white; padding:5px 15px; border-radius:5px; font-size:0.85rem; font-weight:bold; display:inline-block; margin-bottom:15px;"><i class="fa-solid fa-star"></i> تم التقييم: حصلت على ${ex.score} / ${ex.maxScore}</div>`;
+            }
+
+            html += `
+                <div class="card" style="${boxStyle}">
+                    <h3 style="color:var(--purple); margin-bottom:5px;">${ex.title}</h3>
+                    <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">المادة: ${sub?sub.name:'-'} | مرسل يوم: ${ex.date}</p>
+                    ${lockMsg}
+                    
+                    <div id="examForm_${ex.id}">
+                        ${ex.questions.map((q, i) => {
+                            let qHtml = `<div class="student-exam-q">
+                                <div style="font-weight:bold; margin-bottom:12px; color:var(--dark); font-size:1.05rem;">س ${i+1}: ${q.question}</div>`;
+                            
+                            let isDisabled = (!isEditable || ex.status !== 'open') ? 'disabled' : '';
+                            let opacityStyle = isDisabled ? 'opacity:0.7;' : '';
+
+                            if(ex.status === 'submitted' || ex.status === 'graded') {
+                                qHtml += `<div style="background:#e0f2fe; padding:10px; border-radius:6px; color:#0369a1;"><b>إجابتك:</b> ${q.studentAnswer || 'لا يوجد'}</div>`;
+                            } 
+                            else {
+                                if (q.type === 'mcq') {
+                                    q.options.forEach((opt, optIndex) => {
+                                        if(opt.trim() !== '') {
+                                            qHtml += `<label style="${opacityStyle}"><input type="radio" name="ans_${ex.id}_${i}" value="${opt}" ${isDisabled}> ${opt}</label>`;
+                                        }
+                                    });
+                                } else if (q.type === 'tf') {
+                                    qHtml += `<label style="${opacityStyle}"><input type="radio" name="ans_${ex.id}_${i}" value="صح" ${isDisabled}> صح</label>`;
+                                    qHtml += `<label style="${opacityStyle}"><input type="radio" name="ans_${ex.id}_${i}" value="خطأ" ${isDisabled}> خطأ</label>`;
+                                } else {
+                                    qHtml += `<textarea id="ans_${ex.id}_${i}" rows="3" placeholder="اكتب إجابتك هنا..." ${isDisabled} style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); ${opacityStyle}"></textarea>`;
+                                }
+                            }
+                            qHtml += `</div>`;
+                            return qHtml;
+                        }).join('')}
+                        
+                        ${isEditable ? `<button class="btn btn-primary" style="width:100%; margin-top:10px; font-size:1.1rem; padding:15px;" onclick="submitStudentAiExam('${ex.id}')"><i class="fa-solid fa-paper-plane"></i> تسليم الإجابات نهائياً (لا يمكن التعديل بعدها)</button>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    window.submitStudentAiExam = function(examId) {
+        if(!confirm('هل أنت متأكد من تسليم الإجابات؟ تأكد من مراجعتها جيداً فلن تتمكن من تعديلها لاحقاً.')) return;
+        
+        let ex = db.aiExams.find(x => x.id === examId);
+        if(!ex) return;
+
+        ex.questions.forEach((q, i) => {
+            if(q.type === 'mcq' || q.type === 'tf') {
+                let selected = document.querySelector(`input[name="ans_${examId}_${i}"]:checked`);
+                q.studentAnswer = selected ? selected.value : '';
+            } else {
+                q.studentAnswer = v(`ans_${examId}_${i}`);
+            }
+        });
+        
+        ex.status = 'submitted';
+        saveDb(); renderStudentAiExams();
+        showToast('تم تسليم الاختبار بنجاح، بانتظار تقييم الوالد.', 'bg-success');
+    };
+
+    // --- Student Logic (Study Session & XP) ---
+    function calcStudentXP(sId) {
+        let xp = 0;
+        xp += db.harvest.filter(x => x.sId === sId).length * 10;
+        xp += db.study.filter(x => x.sId === sId).length * 5;
+        xp += db.activities.filter(x => x.sId === sId).length * 20;
+        db.exams.filter(x => x.sId === sId).forEach(ex => { if(ex.score >= ex.max * 0.9) xp += 50; else if(ex.score >= ex.max * 0.7) xp += 20; });
+        return xp;
+    }
+
+    function updateStudentDashboardStats() {
+        $('stdXpDisplay').innerText = calcStudentXP(window.currentUser.id);
+        let today = getTodayIso();
+        let myHarvest = db.harvest.filter(x => x.sId === window.currentUser.id && x.isoDate === today).length;
+        let myStudyMins = Math.floor(db.sessionLogs.filter(x => x.sId === window.currentUser.id && x.isoDate === today).reduce((sum, log) => sum + log.durationSeconds, 0) / 60);
+        
+        $('stdSummaryTable').innerHTML = `
+            <tr><td>إنجازات الحصاد اليوم:</td><td><span class="badge badge-blue">${myHarvest} درس</span></td></tr>
+            <tr><td>دقائق التركيز اليوم:</td><td><span class="badge badge-green">${myStudyMins} دقيقة</span></td></tr>
+        `;
+    }
+
+    // --- Utility Functions ---
+    function populateAdminDropdowns() {
+        let schOpts = '<option value="">-- اختر المدرسة --</option>';
+        db.schools.forEach(s => schOpts += `<option value="${s.id}">${s.name}</option>`);
+        if($('stSchool')) $('stSchool').innerHTML = schOpts;
+        if($('setTeacherSchool')) $('setTeacherSchool').innerHTML = schOpts;
+        if($('setSubSchool')) { let current = $('setSubSchool').value; $('setSubSchool').innerHTML = schOpts; if(current) $('setSubSchool').value = current; }
+
+        let stOpts = '<option value="">-- اختر الطالب --</option>';
+        db.students.forEach(s => stOpts += `<option value="${s.id}">${s.name} (${s.grade})</option>`);
+        if($('attStudent')) $('attStudent').innerHTML = stOpts;
+        if($('exStudent')) $('exStudent').innerHTML = stOpts;
+        if($('repStudent')) $('repStudent').innerHTML = stOpts;
+        if($('permStudentSelect')) { let current = $('permStudentSelect').value; $('permStudentSelect').innerHTML = stOpts; if(current) $('permStudentSelect').value = current; }
+        if($('aiExStudent')) { let current = $('aiExStudent').value; $('aiExStudent').innerHTML = stOpts; if(current) $('aiExStudent').value = current; }
+        
+        if($('exStudent')) filterSubjectsByStudent('exStudent', 'exSubject');
+        if($('aiExStudent')) filterSubjectsByStudent('aiExStudent', 'aiExSubject');
+
+        if($('exType')) $('exType').innerHTML = db.settings.examTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+        if($('exSource')) $('exSource').innerHTML = db.settings.examSources.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+
+    window.filterTeachersBySchool = function() {
+        let schId = v('setSubSchool');
+        let tOpts = '<option value="">-- المعلم (حسب المدرسة) --</option>';
+        db.teachers.filter(t => t.schoolId === schId).forEach(t => tOpts += `<option value="${t.id}">${t.name}</option>`);
+        $('setSubTeacher').innerHTML = tOpts;
+    };
+
+    window.filterSubjectsByStudent = function(studentSelectId, subjectSelectId) {
+        let sId = v(studentSelectId);
+        let st = db.students.find(x => x.id === sId);
+        let subOpts = '<option value="">-- اختر المادة --</option>';
+        if(st) {
+            db.subjects.filter(s => s.grade === st.grade && s.schoolId === st.schoolId)
+                .forEach(s => subOpts += `<option value="${s.id}">${s.name} (${s.term})</option>`);
+        } else {
+            db.subjects.forEach(s => subOpts += `<option value="${s.id}">${s.name}</option>`); 
+        }
+        if($(subjectSelectId)) $(subjectSelectId).innerHTML = subOpts;
+    };
+
+    function renderAdminTables() {
+        let schHtml = '<thead><tr><th>المدرسة</th><th>المدير</th><th>الوكيل</th><th>إجراء</th></tr></thead><tbody>';
+        schHtml += db.schools.map(s => `<tr><td>${s.name}</td><td>${s.principal}</td><td>${s.vicePrincipal}</td><td><button class="btn btn-small btn-danger" onclick="delRec('schools', '${s.id}')"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('');
+        if($('tableSchools')) $('tableSchools').innerHTML = schHtml + '</tbody>';
+
+        let stHtml = '<thead><tr><th>الاسم</th><th>المدرسة</th><th>الصف/القاعة</th><th>يوزر/باسورد</th><th>إجراء</th></tr></thead><tbody>';
+        stHtml += db.students.map(s => {
+            let sch = db.schools.find(x => x.id === s.schoolId);
+            return `<tr><td>${s.name}</td><td>${sch?sch.name:'غير محدد'}</td><td>${s.grade} - ${s.section}</td><td>${s.user} / ${s.pass}</td><td><button class="btn btn-small btn-outline" onclick="openPromote('${s.id}', '${s.name}')"><i class="fa-solid fa-level-up-alt"></i></button> <button class="btn btn-small btn-danger" onclick="delRec('students', '${s.id}')"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+        }).join('');
+        if($('tableStudents')) $('tableStudents').innerHTML = stHtml + '</tbody>';
+
+        let attHtml = '<thead><tr><th>التاريخ</th><th>الطالب</th><th>الحالة</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody>';
+        attHtml += db.attendance.map(a => {
+            let st = db.students.find(s => s.id === a.sId);
+            let badge = a.status.includes('عذر') && !a.status.includes('بدون') ? 'badge-orange' : 'badge-red';
+            return `<tr><td>${a.date}</td><td>${st?st.name:'-'}</td><td><span class="badge ${badge}">${a.status}</span></td><td>${a.reason}</td><td><button class="btn btn-small btn-danger" onclick="delRec('attendance', '${a.id}')"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+        }).join('');
+        if($('tableAttendance')) $('tableAttendance').innerHTML = attHtml + '</tbody>';
+
+        let exHtml = '<thead><tr><th>التاريخ</th><th>الطالب</th><th>المادة</th><th>الاختبار</th><th>الدرجة</th><th>إجراء</th></tr></thead><tbody>';
+        exHtml += db.exams.map(e => {
+            let st = db.students.find(s => s.id === e.sId); let sub = db.subjects.find(s => s.id === e.subId);
+            let color = (e.score/e.max) >= 0.5 ? 'color:var(--secondary)' : 'color:var(--danger)';
+            return `<tr><td>${e.date}</td><td>${st?st.name:'-'}</td><td>${sub?sub.name:'-'}</td><td>${e.typeId} <br><small style="color:#94a3b8">${e.sourceId}</small></td><td style="font-weight:bold; ${color}">${e.score} / ${e.max}</td><td><button class="btn btn-small btn-danger" onclick="delRec('exams', '${e.id}')"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+        }).join('');
+        if($('tableExams')) $('tableExams').innerHTML = exHtml + '</tbody>';
+
+        if($('tableSetTeachers')) {
+            $('tableSetTeachers').innerHTML = '<thead><tr><th>المعلم</th><th>المدرسة التابع لها</th><th>إجراء</th></tr></thead><tbody>' + db.teachers.map(t => {
+                let sch = db.schools.find(x => x.id === t.schoolId);
+                return `<tr><td>${t.name}</td><td>${sch?sch.name:'غير محدد'}</td><td><button class="btn btn-small btn-danger" onclick="delRec('teachers', '${t.id}')">حذف</button></td></tr>`;
+            }).join('') + '</tbody>';
+        }
+        
+        if($('tableSetSubjects')) {
+            $('tableSetSubjects').innerHTML = '<thead><tr><th>المادة</th><th>المدرسة</th><th>الصف/الترم</th><th>المعلم</th><th>إجراء</th></tr></thead><tbody>' + db.subjects.map(s => {
+                let sch = db.schools.find(x => x.id === s.schoolId);
+                let t = db.teachers.find(x => x.id === s.tId); 
+                return `<tr><td>${s.name}</td><td>${sch?sch.name:'-'}</td><td>${s.grade} / ${s.term}</td><td>${t?t.name:'-'}</td><td><button class="btn btn-small btn-danger" onclick="delRec('subjects', '${s.id}')">حذف</button></td></tr>`;
+            }).join('') + '</tbody>';
+        }
+
+        if($('listExTypes')) $('listExTypes').innerHTML = db.settings.examTypes.map((t,i) => `<li style="padding:8px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between;">${t} <button class="btn btn-small btn-danger" onclick="delArraySetting('examTypes', ${i})"><i class="fa-solid fa-xmark"></i></button></li>`).join('');
+        if($('listExSources')) $('listExSources').innerHTML = db.settings.examSources.map((s,i) => `<li style="padding:8px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between;">${s} <button class="btn btn-small btn-danger" onclick="delArraySetting('examSources', ${i})"><i class="fa-solid fa-xmark"></i></button></li>`).join('');
+    }
+
+    window.addSchool = function() {
+        if(!v('schName')) return showToast('اكتب اسم المدرسة', 'bg-error');
+        db.schools.push({ id: generateId(), name: v('schName'), principal: v('schPrincipal'), vicePrincipal: v('schVice') });
+        saveDb(); $('schName').value=''; $('schPrincipal').value=''; $('schVice').value='';
+        populateAdminDropdowns(); showToast('تم تسجيل المدرسة', 'bg-success');
+    };
+
+    window.addStudent = function() {
+        if(!v('stName') || !v('stSchool') || !v('stUser') || !v('stPass')) return showToast('أكمل البيانات والمدرسة', 'bg-error');
+        let defaultPerms = { canStudy: true, canActivity: true, canAiExams: true };
+        db.students.push({ id: generateId(), name: v('stName'), schoolId: v('stSchool'), grade: v('stGrade'), section: v('stSection'), user: v('stUser'), pass: v('stPass'), permissions: defaultPerms });
+        saveDb(); $('stName').value='';$('stUser').value='';$('stPass').value='';
+        populateAdminDropdowns();
+    };
+    
+    window.addTeacher = function() {
+        if(!v('setTeacherName') || !v('setTeacherSchool')) return showToast('أدخل الاسم والمدرسة', 'bg-error');
+        db.teachers.push({ id: generateId(), name: v('setTeacherName'), schoolId: v('setTeacherSchool') }); 
+        saveDb(); $('setTeacherName').value='';
+    };
+
+    window.addSubject = function() {
+        if(!v('setSubName') || !v('setSubSchool') || !v('setSubTeacher')) return showToast('بيانات ناقصة', 'bg-error');
+        db.subjects.push({ id: generateId(), name: v('setSubName'), schoolId: v('setSubSchool'), grade: v('setSubGrade'), term: v('setSubTerm'), tId: v('setSubTeacher') }); 
+        saveDb(); $('setSubName').value='';
+    };
+
+    window.openPromote = function(id, name) {
+        $('promStudentId').value = id; $('promName').value = name;
+        let st = db.students.find(s=>s.id===id);
+        $('promNewGrade').value = st.grade; $('promNewSection').value = st.section;
+        $('promoteModal').style.display = 'flex';
+    };
+    window.executePromotion = function() {
+        let id = $('promStudentId').value; let st = db.students.find(s=>s.id===id);
+        if(st) { st.grade = v('promNewGrade'); st.section = v('promNewSection'); saveDb(); closeModal('promoteModal'); showToast('تم ترقية الطالب بنجاح!', 'bg-success'); }
+    };
+
+    window.saveAttendance = function() {
+        if(!v('attStudent') || !v('attDate')) return showToast('أكمل البيانات', 'bg-error');
+        db.attendance.push({ id: generateId(), sId: v('attStudent'), date: v('attDate'), isoDate: v('attDate'), status: v('attStatus'), reason: v('attNotes') });
+        saveDb(); $('attNotes').value=''; showToast('تم التوثيق', 'bg-success');
+    };
+
+    window.saveExam = function() {
+        if(!v('exStudent') || !v('exSubject') || !v('exDate') || v('exScore')==='') return showToast('أكمل البيانات', 'bg-error');
+        db.exams.push({ id: generateId(), sId: v('exStudent'), subId: v('exSubject'), typeId: v('exType'), sourceId: v('exSource'), date: v('exDate'), isoDate: v('exDate'), score: parseFloat(v('exScore')), max: parseFloat(v('exMax')) });
+        saveDb(); $('exScore').value=''; showToast('تم رصد الدرجة', 'bg-success');
+    };
+
+    window.addArraySetting = function(arr, inputId) {
+        if(!v(inputId)) return; db.settings[arr].push(v(inputId)); saveDb(); $(inputId).value='';
+    };
+    window.delArraySetting = function(arr, index) { db.settings[arr].splice(index, 1); saveDb(); };
+    window.delRec = function(arr, id) { if(confirm('متأكد من الحذف؟')) { db[arr] = db[arr].filter(x => x.id !== id); saveDb(); } };
+
+    window.generateComprehensiveReport = function() {
+        let sId = v('repStudent'); if(!sId) { $('reportContainer').style.display='none'; return; }
+        
+        $('reportContainer').style.display = 'block';
+        let st = db.students.find(s=>s.id === sId);
+        let sch = db.schools.find(x=>x.id === st.schoolId);
+        
+        $('repStName').innerText = st.name;
+        $('repStSchool').innerText = sch ? sch.name : 'مدرسة غير محددة';
+        $('repStDetails').innerText = `مدير المدرسة: ${sch?sch.principal:'-'} | الصف: ${st.grade} | القاعة: ${st.section} | مسار التقرير: شامل`;
+        
+        let from = v('repFrom'), to = v('repTo');
+        let dFilter = (item) => {
+            if(item.sId !== sId) return false;
+            let d = item.isoDate; if(!d) return true; // fallback
+            if(from && d < from) return false;
+            if(to && d > to) return false;
+            return true;
+        };
+
+        // Stats calc
+        let myExams = db.exams.filter(dFilter);
+        let avg = myExams.length ? (myExams.reduce((sum, ex) => sum + (ex.score/ex.max), 0) / myExams.length) * 100 : 0;
+        $('repAvgScore').innerText = avg.toFixed(1) + '%';
+        
+        let mySecs = db.sessionLogs.filter(dFilter).reduce((sum, log) => sum + log.durationSeconds, 0);
+        $('repStudyHours').innerText = (mySecs / 3600).toFixed(1);
+        
+        $('repAbsence').innerText = db.attendance.filter(dFilter).length;
+        $('repXP').innerText = calcStudentXP(sId);
+
+        // Tables
+        let getSub = id => { let s = db.subjects.find(x=>x.id===id); return s?s.name:'-';};
+        
+        $('repTableExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الاختبار</th><th>الدرجة</th></tr></thead>` + 
+            (myExams.length ? myExams.map(e => `<tr><td>${e.date}</td><td>${getSub(e.subId)}</td><td>${e.typeId} (${e.sourceId})</td><td style="font-weight:bold">${e.score} / ${e.max}</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
+
+        let myHarv = db.harvest.filter(dFilter);
+        $('repTableStudy').innerHTML = `<thead><tr><th>التاريخ</th><th>النوع</th><th>المادة</th><th>الدرس/الصفحات</th></tr></thead>` + 
+            (myHarv.length ? myHarv.map(h => `<tr><td>${h.isoDate || h.date}</td><td><span class="badge badge-blue">حصاد</span></td><td>${getSub(h.subId)}</td><td>حصة ${h.period} - ${h.lesson} (${h.start}-${h.end})</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
+            
+        let myAct = db.activities.filter(dFilter);
+        $('repTableActivities').innerHTML = `<thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th></tr></thead>` + 
+            (myAct.length ? myAct.map(a => `<tr><td>${a.date}</td><td><span class="badge badge-orange">${a.type}</span></td><td>${a.title}</td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>`);
+
+        let myAiExams = db.aiExams.filter(dFilter).filter(e => e.status === 'graded');
+        $('repTableAiExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>وصف الاختبار</th><th>الدرجة</th></tr></thead>` + 
+            (myAiExams.length ? myAiExams.map(e => `<tr><td>${e.date}</td><td>${getSub(e.subId)}</td><td>${e.title}</td><td style="font-weight:bold; color:var(--purple);">${e.score} / ${e.maxScore}</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
+    };
+
+</script>
+</body>
+</html>
