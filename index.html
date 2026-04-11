@@ -1062,20 +1062,8 @@
 
     // 2. التواصل مع Gemini API باستخدام الصور (أذكى طريقة للقراءة)
     async function generateQuestionsFromImages(imageParts, key) {
-        // البحث التلقائي عن الموديل المتاح والمدعوم في حسابك لتفادي خطأ Not Found
-        let selectedModel = 'gemini-1.5-flash-latest'; // الموديل الافتراضي الأقوى
-        try {
-            const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-            const modelsData = await modelsRes.json();
-            if (modelsData.models) {
-                const available = modelsData.models.map(m => m.name);
-                if (available.includes('models/gemini-1.5-flash-latest')) selectedModel = 'gemini-1.5-flash-latest';
-                else if (available.includes('models/gemini-1.5-flash')) selectedModel = 'gemini-1.5-flash';
-                else if (available.includes('models/gemini-1.5-pro-latest')) selectedModel = 'gemini-1.5-pro-latest';
-                else if (available.includes('models/gemini-1.5-pro')) selectedModel = 'gemini-1.5-pro';
-            }
-        } catch(e) { console.warn("تعذر جلب قائمة الموديلات، سيتم استخدام الموديل الافتراضي.", e); }
-
+        // تم تثبيت الموديل الرسمي المستقر والمضمون 100% من جوجل (بدون لاحقات تجريبية)
+        const selectedModel = 'gemini-1.5-flash';
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${key}`;
         
         const promptText = `
@@ -1097,7 +1085,6 @@
 
         const parts = [{ text: promptText }, ...imageParts];
 
-        // تم إزالة القيود الهيكلية (Schema) التي كانت تسبب الرفض، والاكتفاء بتحديد نوع الرد
         const payload = {
             contents: [{ role: "user", parts: parts }],
             generationConfig: { responseMimeType: "application/json" }
@@ -1113,7 +1100,11 @@
             const result = await response.json();
             if (result.error) throw new Error(result.error.message);
 
-            const responseText = result.candidates[0].content.parts[0].text;
+            let responseText = result.candidates[0].content.parts[0].text;
+            
+            // تنظيف الرد تحسباً لأي إضافات نصية يضعها الذكاء الاصطناعي وتسبب أخطاء
+            responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            
             const generatedQuestions = JSON.parse(responseText);
 
             generatedQuestions.forEach(q => {
