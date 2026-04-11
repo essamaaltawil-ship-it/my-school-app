@@ -984,23 +984,7 @@
     // --- AI PARENT EXAMS LOGIC (PDF Parsing & Gemini) ---
     // ==========================================
     
-    // دالة لتحويل الملف إلى نص بصيغة Base64 لتمريره مباشرة للذكاء الاصطناعي
-    function fileToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                let encoded = reader.result.toString().replace(/^data:(.*,)?/, '');
-                if ((encoded.length % 4) > 0) {
-                    encoded += '='.repeat(4 - (encoded.length % 4));
-                }
-                resolve(encoded);
-            };
-            reader.onerror = error => reject(error);
-        });
-    }
-
-    // 1. قراءة الـ PDF وتمريره للذكاء الاصطناعي بشكل كامل
+    // 1. قراءة الـ PDF وتحويل صفحاته إلى صور لضمان دقة القراءة (تفادي مشاكل الخطوط العربية)
     window.processPdfForExams = async function(event) {
         const file = event.target.files[0];
         if(!file) return;
@@ -1016,38 +1000,62 @@
         }
 
         $('aiLoadingIndicator').style.display = 'block';
+        $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> جاري المسح الضوئي للملف (تحويل لصور)...';
         
         try {
-            // تحويل الملف بالكامل إلى Base64 لتمريره مباشرة لمحرك Gemini
-            const base64Pdf = await fileToBase64(file);
-            await generateQuestionsWithGeminiPDF(base64Pdf);
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+            
+            // أخذ أول 3 صفحات كحد أقصى لضمان سرعة المعالجة
+            const maxPages = Math.min(pdf.numPages, 3);
+            let imageParts = [];
+            
+            for(let i = 1; i <= maxPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 1.5 }); // دقة ممتازة للقراءة
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                const base64Img = canvas.toDataURL('image/png').split(',')[1];
+                
+                imageParts.push({
+                    inlineData: { mimeType: "image/png", data: base64Img }
+                });
+            }
+
+            $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-robot fa-spin"></i> جاري تحليل المحتوى وبناء الأسئلة...';
+            await generateQuestionsFromImages(imageParts);
+            
         } catch (e) {
-            console.error("PDF Parsing Error: ", e);
-            showToast('حدث خطأ أثناء قراءة الملف، تأكد من سلامته.', 'bg-error');
+            console.error("PDF Rendering Error: ", e);
+            showToast('حدث خطأ أثناء معالجة الملف، تأكد من سلامته.', 'bg-error');
         } finally {
             $('aiLoadingIndicator').style.display = 'none';
             event.target.value = ''; 
         }
     };
 
-    // 2. التواصل مع Gemini API لبناء الأسئلة من الـ PDF مباشرة (أذكى وأقوى)
-    async function generateQuestionsWithGeminiPDF(base64Pdf) {
+    // 2. التواصل مع Gemini API باستخدام الصور (أذكى طريقة للقراءة)
+    async function generateQuestionsFromImages(imageParts) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
         
         const promptText = `
-        أنت معلم وخبير تربوي. قم بقراءة وتحليل هذا الملف المرفق (كتاب أو مذكرة الطالب)، وقم بتوليد 5 أسئلة ذكية لاختبار فهم واستيعاب الطالب للمحتوى الموجود فيه.
+        أنت معلم وخبير تربوي. قم بقراءة وتحليل صور صفحات المنهج المرفقة، وقم بتوليد 5 أسئلة ذكية لاختبار فهم واستيعاب الطالب للمحتوى الموجود فيها.
         أريد الأسئلة أن تكون باللغة العربية حصراً، ومتنوعة في الأنواع التالية:
         1. خيارات متعددة (mcq): سؤال مع 4 خيارات واضحة ومنطقية.
         2. صح أو خطأ (tf): سؤال بخيارين فقط (صح، خطأ).
         3. سؤال مباشر (direct): سؤال مقالي قصير يقيس الفهم العميق ويحتاج إجابة نصية قصيرة.
         `;
 
+        const parts = [{ text: promptText }, ...imageParts];
+
         const payload = {
             contents: [{
-                parts: [
-                    { text: promptText },
-                    { inlineData: { mimeType: "application/pdf", data: base64Pdf } }
-                ]
+                role: "user",
+                parts: parts
             }],
             generationConfig: {
                 responseMimeType: "application/json",
@@ -1090,11 +1098,11 @@
             });
 
             renderDraftQuestions();
-            showToast('تم استخراج الأسئلة الذكية بنجاح! راجعها الآن.', 'bg-success');
+            showToast('تم مسح الملف واستخراج الأسئلة الذكية بنجاح!', 'bg-success');
 
         } catch (error) {
             console.error("Gemini API Error:", error);
-            showToast('لم يتمكن الذكاء الاصطناعي من قراءة الملف، حاول رفع ملف أوضح.', 'bg-error');
+            showToast('لم يتمكن الذكاء الاصطناعي من توليد الأسئلة، حاول مرة أخرى.', 'bg-error');
         }
     }
 
@@ -1486,7 +1494,6 @@
         $('tableStdActivities').innerHTML = html + '</tbody>';
     }
 
-    // --- Student Interactive Actions ---
     window.switchStdLogType = function(type) {
         if($('currentLogType')) $('currentLogType').value = type;
         if($('tabHarvest')) $('tabHarvest').className = type === 'harvest' ? 'btn btn-primary flex-1' : 'btn btn-outline flex-1';
@@ -1556,7 +1563,7 @@
                 saveDb(); updateStudentDashboardStats();
                 showToast('تم حفظ الجلسة في رصيدك!', 'bg-success');
             } else {
-                saveDb(); // لمسح الجلسة النشطة فقط
+                saveDb(); 
                 showToast('الجلسة أقصر من دقيقة، لم يتم احتسابها', 'bg-warning');
             }
             sessionSeconds = 0;
@@ -1574,7 +1581,6 @@
             btn.className = 'btn btn-success';
         }
         
-        // إزالة الطالب من قائمة النشطين إذا قام بتحديث الصفحة
         if(db.activeSessions && db.activeSessions[window.currentUser.id]) {
             delete db.activeSessions[window.currentUser.id];
             saveDb();
