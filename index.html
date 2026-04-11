@@ -986,6 +986,13 @@
     
     // 1. قراءة الـ PDF وتحويل صفحاته إلى صور لضمان دقة القراءة (تفادي مشاكل الخطوط العربية)
     window.processPdfForExams = async function(event) {
+        let key = apiKey || localStorage.getItem('gemini_api_key') || '';
+        if (!key || key.trim() === '') {
+            showToast('خطأ: يرجى وضع مفتاح الذكاء الاصطناعي (API Key) في الخانة المخصصة أولاً', 'bg-error');
+            event.target.value = '';
+            return;
+        }
+
         const file = event.target.files[0];
         if(!file) return;
         
@@ -1027,7 +1034,7 @@
             }
 
             $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-robot fa-spin"></i> جاري تحليل المحتوى وبناء الأسئلة...';
-            await generateQuestionsFromImages(imageParts);
+            await generateQuestionsFromImages(imageParts, key);
             
         } catch (e) {
             console.error("PDF Rendering Error: ", e);
@@ -1039,8 +1046,8 @@
     };
 
     // 2. التواصل مع Gemini API باستخدام الصور (أذكى طريقة للقراءة)
-    async function generateQuestionsFromImages(imageParts) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    async function generateQuestionsFromImages(imageParts, key) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
         
         const promptText = `
         أنت معلم وخبير تربوي. قم بقراءة وتحليل صور صفحات المنهج المرفقة، وقم بتوليد 5 أسئلة ذكية لاختبار فهم واستيعاب الطالب للمحتوى الموجود فيها.
@@ -1102,7 +1109,7 @@
 
         } catch (error) {
             console.error("Gemini API Error:", error);
-            showToast('السبب الدقيق للخطأ: ' + error.message, 'bg-error');
+            showToast('خطأ في واجهة الذكاء الاصطناعي (تأكد من صحة الـ API Key): ' + error.message, 'bg-error');
         }
     }
 
