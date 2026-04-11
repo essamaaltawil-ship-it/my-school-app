@@ -1069,11 +1069,11 @@
             });
 
             renderDraftQuestions();
-            showToast('تم استخراج الأسئلة بنجاح! راجعها الآن.', 'bg-success');
+            showToast('تم استخراج الأسئلة من الـ PDF بنجاح! راجعها الآن.', 'bg-success');
 
         } catch (error) {
             console.error("Gemini API Error:", error);
-            showToast('خطأ في توليد الأسئلة الذكية، يرجى المحاولة لاحقاً.', 'bg-error');
+            showToast('فشل التوليد: تأكد من أن الـ PDF يحتوي على نص عربي مقروء (وليس صوراً فقط).', 'bg-error');
         }
     }
 
