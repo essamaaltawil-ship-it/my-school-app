@@ -1013,11 +1013,11 @@
 
     // 2. التواصل مع Gemini API لبناء الأسئلة بصيغة JSON مهيكلة
     async function generateQuestionsWithGemini(text) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${AI_API_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
         
         const promptText = `
-        أنت معلم خبير. بناءً على النص التالي المستخرج من كتاب أو مذكرة الطالب، قم بتوليد 5 أسئلة لاختبار فهمه.
-        أريد الأسئلة أن تكون متنوعة في الأنواع التالية حصراً:
+        أنت معلم وخبير تربوي. بناءً على النص التالي المستخرج من كتاب أو مذكرة الطالب، قم بتوليد 5 أسئلة ذكية لاختبار فهمه واستيعابه.
+        أريد الأسئلة أن تكون باللغة العربية حصراً، ومتنوعة في الأنواع التالية:
         1. خيارات متعددة (mcq): 4 خيارات واضحة.
         2. صح أو خطأ (tf): خيارين فقط (صح، خطأ).
         3. سؤال مباشر (direct): سؤال مقالي قصير يحتاج إجابة نصية.
@@ -1069,11 +1069,11 @@
             });
 
             renderDraftQuestions();
-            showToast('تم استخراج الأسئلة من الـ PDF بنجاح! راجعها الآن.', 'bg-success');
+            showToast('تم استخراج الأسئلة بنجاح! راجعها الآن.', 'bg-success');
 
         } catch (error) {
             console.error("Gemini API Error:", error);
-            showToast('فشل التوليد: تأكد من أن الـ PDF يحتوي على نص عربي مقروء (وليس صوراً فقط).', 'bg-error');
+            showToast('خطأ في التوليد، تأكد من أن الـ PDF يحتوي على نصوص وليس صوراً فقط.', 'bg-error');
         }
     }
 
