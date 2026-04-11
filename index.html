@@ -1062,7 +1062,8 @@
 
     // 2. التواصل مع Gemini API باستخدام الصور (أذكى طريقة للقراءة)
     async function generateQuestionsFromImages(imageParts, key) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+        // تم تغيير الموديل إلى النسخة المستقرة والمدعومة للجميع gemini-1.5-flash
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
         
         const promptText = `
         أنت معلم وخبير تربوي. قم بقراءة وتحليل صور صفحات المنهج المرفقة، وقم بتوليد 5 أسئلة ذكية لاختبار فهم واستيعاب الطالب للمحتوى الموجود فيها.
