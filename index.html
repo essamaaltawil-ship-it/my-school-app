@@ -1034,21 +1034,20 @@
             
             for(let i = 1; i <= maxPages; i++) {
                 const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 1.2 }); // دقة متوازنة وممتازة للقراءة السريعة
+                const viewport = page.getViewport({ scale: 1.2 }); // دقة متوازنة وممتازة
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
                 
                 await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                const base64Img = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]; // ضغط كـ JPEG لتسريع النقل
+                const base64Img = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
                 
                 imageParts.push({
                     inlineData: { mimeType: "image/jpeg", data: base64Img }
                 });
             }
 
-            $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-robot fa-spin"></i> جاري الاتصال بالذكاء الاصطناعي وتوليد الأسئلة...';
             await generateQuestionsFromImages(imageParts, key);
             
         } catch (e) {
@@ -1060,11 +1059,63 @@
         }
     };
 
-    // 2. التواصل مع Gemini API باستخدام الصور (أذكى طريقة للقراءة)
+    // 2. البحث الذكي عن الموديل المتاح والتواصل مع Gemini API
     async function generateQuestionsFromImages(imageParts, key) {
-        // تم تثبيت الموديل الرسمي المستقر والمضمون 100% من جوجل (بدون لاحقات تجريبية)
-        const selectedModel = 'gemini-1.5-flash';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${key}`;
+        $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-search fa-spin"></i> جاري البحث عن محرك الذكاء الاصطناعي المدعوم في حسابك...';
+        
+        let selectedModel = '';
+        try {
+            // جلب قائمة الموديلات المتاحة لمفتاح المستخدم تحديداً
+            const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+            const modelsData = await modelsRes.json();
+            
+            if (modelsData.error) throw new Error(modelsData.error.message);
+            
+            if (modelsData.models) {
+                // تصفية الموديلات التي تدعم توليد المحتوى وتدعم الصور (إصدارات 1.5 أو 2.0)
+                const availableModels = modelsData.models.filter(m => 
+                    m.supportedGenerationMethods && 
+                    m.supportedGenerationMethods.includes('generateContent') && 
+                    m.name.includes('gemini') &&
+                    (m.name.includes('1.5') || m.name.includes('2.0') || m.name.includes('vision'))
+                );
+                
+                // قائمة تفضيلات من الأسرع والأكثر استقراراً للحسابات الجديدة
+                const preferred = [
+                    'models/gemini-1.5-flash-001',
+                    'models/gemini-1.5-flash-002',
+                    'models/gemini-1.5-flash',
+                    'models/gemini-1.5-pro-001',
+                    'models/gemini-1.5-pro-002',
+                    'models/gemini-1.5-pro',
+                    'models/gemini-2.0-flash-exp'
+                ];
+                
+                for (let p of preferred) {
+                    if (availableModels.find(m => m.name === p)) {
+                        selectedModel = p;
+                        break;
+                    }
+                }
+                
+                // إذا لم يجد المفضلات، يختار أي موديل صالح متاح
+                if (!selectedModel && availableModels.length > 0) {
+                    selectedModel = availableModels[0].name;
+                }
+            }
+        } catch (e) {
+            console.warn("فشل البحث التلقائي، سيتم المحاولة مع الموديل الأساسي", e);
+            selectedModel = 'models/gemini-1.5-flash-001';
+        }
+
+        if (!selectedModel) {
+            showToast('خطأ: لم يتم العثور على أي موديل ذكاء اصطناعي يدعم الصور في حسابك.', 'bg-error');
+            return;
+        }
+
+        $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-robot fa-spin"></i> جاري توليد الأسئلة باستخدام (${selectedModel.split('/')[1]})...`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${key}`;
         
         const promptText = `
         أنت معلم وخبير تربوي. قم بقراءة وتحليل صور صفحات المنهج المرفقة، وقم بتوليد 5 أسئلة ذكية لاختبار فهم واستيعاب الطالب للمحتوى الموجود فيها.
