@@ -1031,7 +1031,7 @@
             
         } catch (e) {
             console.error("PDF Rendering Error: ", e);
-            showToast('حدث خطأ أثناء معالجة الملف، تأكد من سلامته.', 'bg-error');
+            showToast('تفاصيل خطأ قراءة الملف: ' + e.message, 'bg-error');
         } finally {
             $('aiLoadingIndicator').style.display = 'none';
             event.target.value = ''; 
@@ -1102,7 +1102,7 @@
 
         } catch (error) {
             console.error("Gemini API Error:", error);
-            showToast('لم يتمكن الذكاء الاصطناعي من توليد الأسئلة، حاول مرة أخرى.', 'bg-error');
+            showToast('السبب الدقيق للخطأ: ' + error.message, 'bg-error');
         }
     }
 
