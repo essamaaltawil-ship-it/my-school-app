@@ -358,6 +358,15 @@
                         <div class="form-group"><label>المادة</label><select id="aiExSubject"></select></div>
                         <div class="form-group"><label>عنوان الاختبار (نطاق المذاكرة)</label><input type="text" id="aiExTitle" placeholder="مثال: مراجعة الوحدة الأولى - ص 10 إلى 15"></div>
                         
+                        <!-- إعداد مفتاح API -->
+                        <div style="background: #fff7ed; padding: 15px; border-radius: 12px; border: 1px solid #fed7aa; margin-bottom: 20px;">
+                            <h4 style="color: #c2410c; margin-bottom: 10px;"><i class="fa-solid fa-key"></i> مفتاح الذكاء الاصطناعي (Gemini API Key)</h4>
+                            <input type="password" id="geminiApiKey" placeholder="الصق مفتاح AIzaSy... هنا" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #fed7aa; outline: none;" oninput="localStorage.setItem('gemini_api_key', this.value)">
+                            <p style="font-size: 0.85rem; color: #9a3412; margin-top: 8px;">
+                                بدون هذا المفتاح لن يتمكن النظام من قراءة الملف. <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: underline;">اضغط هنا لإنشاء مفتاح مجاني</a> (يُحفظ في متصفحك سرياً).
+                            </p>
+                        </div>
+
                         <!-- PDF Upload Area -->
                         <div style="background: #faf5ff; padding: 20px; border-radius: 12px; border: 2px dashed var(--purple); margin-bottom: 20px; text-align: center;">
                             <i class="fa-solid fa-file-pdf" style="font-size: 2.5rem; color: var(--purple); margin-bottom: 10px;"></i>
@@ -986,12 +995,18 @@
     
     // 1. قراءة الـ PDF وتحويل صفحاته إلى صور لضمان دقة القراءة (تفادي مشاكل الخطوط العربية)
     window.processPdfForExams = async function(event) {
-        let key = apiKey || localStorage.getItem('gemini_api_key') || '';
-        if (!key || key.trim() === '') {
-            showToast('خطأ: يرجى وضع مفتاح الذكاء الاصطناعي (API Key) في الخانة المخصصة أولاً', 'bg-error');
+        let inputElement = document.getElementById('geminiApiKey');
+        let key = inputElement ? inputElement.value.trim() : '';
+        if (!key) key = localStorage.getItem('gemini_api_key') || apiKey;
+
+        if (!key || key === '') {
+            showToast('خطأ: يرجى جلب مفتاح الذكاء الاصطناعي ولصقه في الخانة البرتقالية أولاً!', 'bg-error');
             event.target.value = '';
             return;
         }
+
+        // حفظ المفتاح فوراً لضمان عدم ضياعه
+        localStorage.setItem('gemini_api_key', key);
 
         const file = event.target.files[0];
         if(!file) return;
