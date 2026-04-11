@@ -132,14 +132,7 @@
         .login-wrapper { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); width: 100%; position: absolute; top: 0; left: 0; z-index: 1000; }
         .login-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
         
-        /* Toast & Modals */
-        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); color: white; padding: 15px 30px; border-radius: 30px; font-weight: 700; opacity: 0; transition: 0.4s; z-index: 2000; box-shadow: 0 10px 20px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; background: #334155; }
-        #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-        .bg-success { background-color: var(--secondary) !important; }
-        .bg-error { background-color: var(--danger) !important; }
-        .bg-warning { background-color: var(--warning) !important; }
-        .bg-info { background-color: var(--info) !important; }
-        
+        /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1500; }
         .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease; max-height: 90vh; overflow-y: auto;}
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
@@ -157,6 +150,8 @@
             .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
         }
     </style>
+    <!-- استدعاء Tailwind CSS بشكل صحيح لضمان عمل الإشعارات -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
 
@@ -368,14 +363,14 @@
                             <i class="fa-solid fa-file-pdf" style="font-size: 2.5rem; color: var(--purple); margin-bottom: 10px;"></i>
                             <h4 style="color: var(--purple); margin-bottom: 5px;">مُولّد الأسئلة الذكي من ملف PDF</h4>
                             <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">
-                                ارفع ملف الـ PDF لصفحات الكتاب التي ذاكرها الطالب. سيقرأه النظام، يولد أسئلة متنوعة (خيارات، صح وخطأ، مقالي)، ثم <b>يتخلص من الملف فوراً</b> دون تخزينه لعدم استهلاك مساحة.
+                                ارفع ملف الـ PDF لصفحات الكتاب التي ذاكرها الطالب. سيقرأه النظام بالذكاء الاصطناعي، يولد أسئلة متنوعة (خيارات، صح وخطأ، مقالي)، ثم <b>يتخلص من الملف فوراً</b> دون تخزينه لعدم استهلاك مساحة.
                             </p>
                             
                             <input type="file" id="aiPdfInput" accept="application/pdf" style="display:none;" onchange="processPdfForExams(event)">
                             <button class="btn btn-purple" onclick="document.getElementById('aiPdfInput').click()"><i class="fa-solid fa-cloud-arrow-up"></i> رفع PDF وتوليد الأسئلة آلياً</button>
                             
                             <div id="aiLoadingIndicator" style="display:none; margin-top:15px; color:var(--purple); font-weight:bold;">
-                                <i class="fa-solid fa-circle-notch fa-spin"></i> جاري استخراج النص وتحليل الذكاء الاصطناعي... الرجاء الانتظار
+                                <i class="fa-solid fa-circle-notch fa-spin"></i> جاري قراءة الملف وتحليل الذكاء الاصطناعي... الرجاء الانتظار
                             </div>
                         </div>
 
@@ -698,10 +693,8 @@
     </div>
 </div>
 
-<div id="toast"></div>
-
 <!-- ======================================================== -->
-<!-- ENGINE & LOGIC (V4 - AI & Monitoring Excellence Edition) -->
+<!-- ENGINE & LOGIC (V5 - Ultimate AI & Beautiful Toasts) -->
 <!-- ======================================================== -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -748,18 +741,29 @@
     function v(id) { return $(id) ? $(id).value.trim() : ''; }
     function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
     function getTodayIso() { return new Date().toISOString().split('T')[0]; }
-    function showToast(msg, bgClass) {
+    
+    // تصميم الإشعارات الجديد (ملون، بأيقونات، ولا يتأثر بالخلفيات البيضاء)
+    window.showToast = function(msg, bgClass = 'bg-success') {
         let t = $('toast'); 
-        let icon = 'fa-bell';
-        if(bgClass === 'bg-success') icon = 'fa-check-circle';
-        else if(bgClass === 'bg-error') icon = 'fa-triangle-exclamation';
-        else if(bgClass === 'bg-warning') icon = 'fa-exclamation-circle';
-        else bgClass = 'bg-info';
+        if(!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
         
-        t.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`; 
-        t.className = `${bgClass} show`;
-        setTimeout(() => t.className = '', 3500);
+        let bgColor = 'bg-blue-600'; let icon = 'fa-bell';
+        if(bgClass.includes('success')) { bgColor = 'bg-green-600'; icon = 'fa-check-circle'; }
+        else if(bgClass.includes('error')) { bgColor = 'bg-red-600'; icon = 'fa-triangle-exclamation'; }
+        else if(bgClass.includes('warning')) { bgColor = 'bg-orange-500'; icon = 'fa-exclamation-circle'; }
+        
+        t.className = `fixed bottom-10 left-1/2 transform -translate-x-1/2 flex items-center gap-3 px-8 py-4 rounded-full text-white font-bold shadow-2xl transition-all duration-300 z-[9999] ${bgColor}`;
+        t.innerHTML = `<i class="fa-solid ${icon} text-2xl"></i> <span class="text-lg">${msg}</span>`;
+        
+        t.style.opacity = '0'; t.style.transform = 'translate(-50%, 50px)';
+        setTimeout(() => { t.style.opacity = '1'; t.style.transform = 'translate(-50%, 0)'; }, 50);
+        
+        if(window.toastTimeout) clearTimeout(window.toastTimeout);
+        window.toastTimeout = setTimeout(() => {
+            t.style.opacity = '0'; t.style.transform = 'translate(-50%, 50px)';
+        }, 4000);
     }
+
     window.closeModal = function(id) { $(id).style.display = 'none'; };
     window.nav = function(viewId, el) {
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -797,8 +801,6 @@
                     db = { ...DEFAULT_DB, ...cloudData };
                     ['schools', 'exams', 'attendance', 'activities', 'aiExams'].forEach(arr => { if(!db[arr]) db[arr] = []; });
                     
-                    // --- مُعالج بيانات التوافقية (Auto-Migration) ---
-                    // هذا الكود يتأكد أن أي طالب أو مادة قديمة (بدون مدرسة) يتم إضافتها لمدرسة افتراضية لكي تظهر في الشاشة ولا تختفي.
                     let needsSave = false;
                     
                     if (db.schools.length === 0 && (db.students.length > 0 || db.subjects.length > 0)) {
@@ -822,7 +824,6 @@
                     
                     refreshDataUI();
 
-                    // حفظ التعديلات التوافقية في السحابة بصمت
                     if(needsSave) { setDoc(dbRef, db).catch(e => console.warn(e)); }
 
                 } else {
@@ -834,7 +835,7 @@
 
     function saveDb() { 
         if(dbRef && firestoreDb && auth.currentUser) {
-            setDoc(dbRef, db).then(() => showToast('<i class="fa-solid fa-cloud-arrow-up"></i> تم الحفظ في السحابة', 'bg-success'))
+            setDoc(dbRef, db).then(() => showToast('تم الحفظ في السحابة بنجاح', 'bg-success'))
             .catch(e => showToast('خطأ في الاتصال بالسحابة!', 'bg-error')); 
         }
     }
@@ -983,7 +984,23 @@
     // --- AI PARENT EXAMS LOGIC (PDF Parsing & Gemini) ---
     // ==========================================
     
-    // 1. قراءة الـ PDF واستخراج النص في متصفح العميل (بدون حفظه)
+    // دالة لتحويل الملف إلى نص بصيغة Base64 لتمريره مباشرة للذكاء الاصطناعي
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                let encoded = reader.result.toString().replace(/^data:(.*,)?/, '');
+                if ((encoded.length % 4) > 0) {
+                    encoded += '='.repeat(4 - (encoded.length % 4));
+                }
+                resolve(encoded);
+            };
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    // 1. قراءة الـ PDF وتمريره للذكاء الاصطناعي بشكل كامل
     window.processPdfForExams = async function(event) {
         const file = event.target.files[0];
         if(!file) return;
@@ -993,53 +1010,45 @@
             return;
         }
 
+        if (file.size > 15 * 1024 * 1024) {
+            showToast('حجم الملف كبير جداً. الحد الأقصى 15 ميجابايت.', 'bg-error');
+            return;
+        }
+
         $('aiLoadingIndicator').style.display = 'block';
         
         try {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
-            
-            let fullText = '';
-            const maxPages = Math.min(pdf.numPages, 20); 
-            for(let i = 1; i <= maxPages; i++) {
-                const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                const strings = content.items.map(item => item.str);
-                fullText += strings.join(' ') + '\n';
-            }
-            
-            if(fullText.trim() === '') {
-                throw new Error("الملف لا يحتوي على نص قابل للقراءة (قد يكون مجرد صور).");
-            }
-
-            await generateQuestionsWithGemini(fullText);
-            
+            // تحويل الملف بالكامل إلى Base64 لتمريره مباشرة لمحرك Gemini
+            const base64Pdf = await fileToBase64(file);
+            await generateQuestionsWithGeminiPDF(base64Pdf);
         } catch (e) {
             console.error("PDF Parsing Error: ", e);
-            showToast('حدث خطأ أثناء قراءة الملف: ' + e.message, 'bg-error');
+            showToast('حدث خطأ أثناء قراءة الملف، تأكد من سلامته.', 'bg-error');
         } finally {
             $('aiLoadingIndicator').style.display = 'none';
             event.target.value = ''; 
         }
     };
 
-    // 2. التواصل مع Gemini API لبناء الأسئلة بصيغة JSON مهيكلة
-    async function generateQuestionsWithGemini(text) {
+    // 2. التواصل مع Gemini API لبناء الأسئلة من الـ PDF مباشرة (أذكى وأقوى)
+    async function generateQuestionsWithGeminiPDF(base64Pdf) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
         
         const promptText = `
-        أنت معلم وخبير تربوي. بناءً على النص التالي المستخرج من كتاب أو مذكرة الطالب، قم بتوليد 5 أسئلة ذكية لاختبار فهمه واستيعابه.
+        أنت معلم وخبير تربوي. قم بقراءة وتحليل هذا الملف المرفق (كتاب أو مذكرة الطالب)، وقم بتوليد 5 أسئلة ذكية لاختبار فهم واستيعاب الطالب للمحتوى الموجود فيه.
         أريد الأسئلة أن تكون باللغة العربية حصراً، ومتنوعة في الأنواع التالية:
-        1. خيارات متعددة (mcq): 4 خيارات واضحة.
-        2. صح أو خطأ (tf): خيارين فقط (صح، خطأ).
-        3. سؤال مباشر (direct): سؤال مقالي قصير يحتاج إجابة نصية.
-
-        النص المدروس:
-        """${text.substring(0, 10000)}"""
+        1. خيارات متعددة (mcq): سؤال مع 4 خيارات واضحة ومنطقية.
+        2. صح أو خطأ (tf): سؤال بخيارين فقط (صح، خطأ).
+        3. سؤال مباشر (direct): سؤال مقالي قصير يقيس الفهم العميق ويحتاج إجابة نصية قصيرة.
         `;
 
         const payload = {
-            contents: [{ parts: [{ text: promptText }] }],
+            contents: [{
+                parts: [
+                    { text: promptText },
+                    { inlineData: { mimeType: "application/pdf", data: base64Pdf } }
+                ]
+            }],
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -1081,11 +1090,11 @@
             });
 
             renderDraftQuestions();
-            showToast('تم استخراج الأسئلة بنجاح! راجعها الآن.', 'bg-success');
+            showToast('تم استخراج الأسئلة الذكية بنجاح! راجعها الآن.', 'bg-success');
 
         } catch (error) {
             console.error("Gemini API Error:", error);
-            showToast('حدث خطأ. تأكد أن ملف PDF يحتوي على نصوص وليس صوراً.', 'bg-error');
+            showToast('لم يتمكن الذكاء الاصطناعي من قراءة الملف، حاول رفع ملف أوضح.', 'bg-error');
         }
     }
 
