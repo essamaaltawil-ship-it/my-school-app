@@ -990,10 +990,9 @@
 
 
     // ==========================================
-    // --- AI PARENT EXAMS LOGIC (PDF Parsing & Gemini) ---
+    // --- AI PARENT EXAMS LOGIC (Ultimate Hybrid Parser) ---
     // ==========================================
     
-    // 1. قراءة الـ PDF وتحويل صفحاته إلى صور لضمان دقة القراءة (تفادي مشاكل الخطوط العربية)
     window.processPdfForExams = async function(event) {
         let inputElement = document.getElementById('geminiApiKey');
         let key = inputElement ? inputElement.value.trim() : '';
@@ -1005,7 +1004,7 @@
             return;
         }
 
-        // حفظ المفتاح فوراً لضمان عدم ضياعه
+        // حفظ المفتاح
         localStorage.setItem('gemini_api_key', key);
 
         const file = event.target.files[0];
@@ -1016,163 +1015,149 @@
             return;
         }
 
-        if (file.size > 15 * 1024 * 1024) {
-            showToast('حجم الملف كبير جداً. الحد الأقصى 15 ميجابايت.', 'bg-error');
-            return;
-        }
-
         $('aiLoadingIndicator').style.display = 'block';
-        $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> جاري المسح الضوئي للملف (تحويل لصور)...';
+        $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-file-text fa-spin"></i> جاري فحص وقراءة الملف...';
         
         try {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
             
-            // أخذ أول 3 صفحات كحد أقصى لضمان سرعة المعالجة
-            const maxPages = Math.min(pdf.numPages, 3);
-            let imageParts = [];
+            // قراءة 5 صفحات كحد أقصى لتجنب استهلاك الحصة المجانية (Quota)
+            const maxPages = Math.min(pdf.numPages, 5);
+            let extractedText = '';
             
+            // المحاولة الأولى: استخراج النصوص مباشرة (خفيف جداً ومجاني تقريباً)
             for(let i = 1; i <= maxPages; i++) {
                 const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 1.2 }); // دقة متوازنة وممتازة
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                
-                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                const base64Img = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-                
-                imageParts.push({
-                    inlineData: { mimeType: "image/jpeg", data: base64Img }
-                });
+                const textContent = await page.getTextContent();
+                const strings = textContent.items.map(item => item.str);
+                extractedText += strings.join(' ') + '\n';
             }
 
-            await generateQuestionsFromImages(imageParts, key);
+            let promptPayload = null;
+
+            // إذا وجد النظام نصوصاً داخل الـ PDF
+            if (extractedText.trim().length > 100) {
+                $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-bolt fa-spin"></i> تم العثور على نصوص! جاري التوليد السريع...';
+                
+                const promptText = `
+                أنت معلم تربوي. بناءً على النص التالي، قم بتوليد 5 أسئلة لاختبار فهم الطالب باللغة العربية.
+                يجب أن يكون الرد عبارة عن مصفوفة JSON فقط:
+                [
+                  {"type": "mcq", "question": "السؤال", "options": ["خيار1","خيار2","خيار3","خيار4"], "correctAnswer": "الإجابة الصحيحة"}
+                ]
+                الأنواع المسموحة في حقل type: 
+                1. mcq (خيارات متعددة) 
+                2. tf (صح وخطأ - مصفوفة options يجب أن تكون ["صح", "خطأ"]) 
+                3. direct (سؤال مباشر - مصفوفة options فارغة [])
+                
+                النص المدروس:
+                ${extractedText.substring(0, 15000)}
+                `;
+                
+                promptPayload = { 
+                    contents: [{ role: "user", parts: [{text: promptText}] }], 
+                    generationConfig: { responseMimeType: "application/json" } 
+                };
+            } 
+            // المحاولة الثانية: إذا كان الملف عبارة عن صور (سكانر)
+            else {
+                $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-camera fa-spin"></i> الملف صور، جاري المسح الضوئي (قد يستغرق وقتاً)...';
+                let imageParts = [];
+                // نأخذ صفحتين فقط لتقليل الضغط على الحد المجاني
+                for(let i = 1; i <= Math.min(maxPages, 2); i++) {
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.0 }); // دقة منخفضة لتوفير التوكنز
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                    const base64Img = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+                    imageParts.push({ inlineData: { mimeType: "image/jpeg", data: base64Img } });
+                }
+                
+                const promptText = `
+                أنت معلم. استخرج 5 أسئلة من صور هذا المنهج بصيغة JSON مصفوفة تحتوي على (type, question, options, correctAnswer) بنفس شروط الأنواع (mcq, tf, direct).
+                `;
+                
+                promptPayload = { 
+                    contents: [{ role: "user", parts: [{ text: promptText }, ...imageParts] }], 
+                    generationConfig: { responseMimeType: "application/json" } 
+                };
+            }
+
+            // إرسال الطلب الذكي
+            await callGeminiAPI(promptPayload, key);
             
         } catch (e) {
-            console.error("PDF Rendering Error: ", e);
-            showToast('تفاصيل خطأ قراءة الملف: ' + e.message, 'bg-error');
+            console.error("System Error: ", e);
+            showToast('خطأ: ' + e.message, 'bg-error');
         } finally {
             $('aiLoadingIndicator').style.display = 'none';
             event.target.value = ''; 
         }
     };
 
-    // 2. البحث الذكي عن الموديل المتاح والتواصل مع Gemini API
-    async function generateQuestionsFromImages(imageParts, key) {
-        $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-search fa-spin"></i> جاري البحث عن محرك الذكاء الاصطناعي المدعوم في حسابك...';
-        
-        let selectedModel = '';
-        try {
-            // جلب قائمة الموديلات المتاحة لمفتاح المستخدم تحديداً
-            const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-            const modelsData = await modelsRes.json();
+    async function callGeminiAPI(payload, key) {
+        // قائمة الموديلات التي سنجربها بالترتيب لضمان عمل أحدها
+        const modelsToTry = [
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-8b',
+            'gemini-2.0-flash-lite-preview-02-05'
+        ];
+
+        let success = false;
+        let lastError = '';
+
+        for (const model of modelsToTry) {
+            $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-robot fa-spin"></i> جاري التوليد باستخدام (${model})...`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
             
-            if (modelsData.error) throw new Error(modelsData.error.message);
-            
-            if (modelsData.models) {
-                // تصفية الموديلات التي تدعم توليد المحتوى وتدعم الصور (إصدارات 1.5 أو 2.0)
-                const availableModels = modelsData.models.filter(m => 
-                    m.supportedGenerationMethods && 
-                    m.supportedGenerationMethods.includes('generateContent') && 
-                    m.name.includes('gemini') &&
-                    (m.name.includes('1.5') || m.name.includes('2.0') || m.name.includes('vision'))
-                );
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
                 
-                // قائمة تفضيلات من الأسرع والأكثر استقراراً للحسابات الجديدة
-                const preferred = [
-                    'models/gemini-1.5-flash-001',
-                    'models/gemini-1.5-flash-002',
-                    'models/gemini-1.5-flash',
-                    'models/gemini-1.5-pro-001',
-                    'models/gemini-1.5-pro-002',
-                    'models/gemini-1.5-pro',
-                    'models/gemini-2.0-flash-exp'
-                ];
-                
-                for (let p of preferred) {
-                    if (availableModels.find(m => m.name === p)) {
-                        selectedModel = p;
-                        break;
-                    }
+                if (result.error) {
+                    throw new Error(result.error.message);
                 }
+
+                let responseText = result.candidates[0].content.parts[0].text;
+                responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                const generatedQuestions = JSON.parse(responseText);
+
+                generatedQuestions.forEach(q => {
+                    window.draftExamQuestions.push({
+                        type: q.type || 'direct',
+                        question: q.question || 'سؤال بدون نص',
+                        options: q.options || ['', '', '', ''],
+                        correctAnswer: q.correctAnswer || ''
+                    });
+                });
+
+                renderDraftQuestions();
+                showToast('تم استخراج الأسئلة الذكية بنجاح! راجعها الآن.', 'bg-success');
+                success = true;
+                break; // نخرج من اللوب إذا نجح
+
+            } catch (err) {
+                console.warn(`فشل الموديل ${model}:`, err.message);
+                lastError = err.message;
                 
-                // إذا لم يجد المفضلات، يختار أي موديل صالح متاح
-                if (!selectedModel && availableModels.length > 0) {
-                    selectedModel = availableModels[0].name;
+                // إذا كان الخطأ بسبب الحصص (Quota) نتوقف فوراً ونبلغ المستخدم
+                if (lastError.toLowerCase().includes('quota') || lastError.toLowerCase().includes('429')) {
+                    throw new Error("لقد استنفدت الحد المجاني للذكاء الاصطناعي (Quota Exceeded). يرجى المحاولة غداً أو استخدام مفتاح جديد.");
                 }
             }
-        } catch (e) {
-            console.warn("فشل البحث التلقائي، سيتم المحاولة مع الموديل الأساسي", e);
-            selectedModel = 'models/gemini-1.5-flash-001';
         }
 
-        if (!selectedModel) {
-            showToast('خطأ: لم يتم العثور على أي موديل ذكاء اصطناعي يدعم الصور في حسابك.', 'bg-error');
-            return;
-        }
-
-        $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-robot fa-spin"></i> جاري توليد الأسئلة باستخدام (${selectedModel.split('/')[1]})...`;
-
-        const url = `https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${key}`;
-        
-        const promptText = `
-        أنت معلم وخبير تربوي. قم بقراءة وتحليل صور صفحات المنهج المرفقة، وقم بتوليد 5 أسئلة ذكية لاختبار فهم واستيعاب الطالب للمحتوى الموجود فيها.
-        يجب أن يكون الرد عبارة عن مصفوفة JSON فقط (بدون أي نصوص قبلها أو بعدها) تحتوي على كائنات بالصيغة التالية بالضبط:
-        [
-          {
-            "type": "mcq", 
-            "question": "نص السؤال هنا",
-            "options": ["خيار1", "خيار2", "خيار3", "خيار4"],
-            "correctAnswer": "الخيار الصحيح بالضبط"
-          }
-        ]
-        الأنواع المسموحة في حقل type هي:
-        1. mcq (خيارات متعددة - 4 خيارات)
-        2. tf (صح أو خطأ - خيارين فقط في مصفوفة options هما "صح", "خطأ")
-        3. direct (سؤال مباشر - اترك مصفوفة options فارغة [])
-        `;
-
-        const parts = [{ text: promptText }, ...imageParts];
-
-        const payload = {
-            contents: [{ role: "user", parts: parts }],
-            generationConfig: { responseMimeType: "application/json" }
-        };
-
-        try {
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-
-            const result = await response.json();
-            if (result.error) throw new Error(result.error.message);
-
-            let responseText = result.candidates[0].content.parts[0].text;
-            
-            // تنظيف الرد تحسباً لأي إضافات نصية يضعها الذكاء الاصطناعي وتسبب أخطاء
-            responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-            
-            const generatedQuestions = JSON.parse(responseText);
-
-            generatedQuestions.forEach(q => {
-                window.draftExamQuestions.push({
-                    type: q.type || 'direct',
-                    question: q.question || 'سؤال بدون نص',
-                    options: q.options || ['', '', '', ''],
-                    correctAnswer: q.correctAnswer || ''
-                });
-            });
-
-            renderDraftQuestions();
-            showToast('تم استخراج الأسئلة الذكية بنجاح! راجعها الآن.', 'bg-success');
-
-        } catch (error) {
-            console.error("Gemini API Error:", error);
-            showToast('حدث خطأ في توليد الأسئلة: ' + error.message, 'bg-error');
+        if (!success) {
+            throw new Error(lastError);
         }
     }
 
