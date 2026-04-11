@@ -735,7 +735,7 @@
     window.currentUser = null;
     window.studentTimerInterval = null;
     window.adminPollingInterval = null;
-    window.myPeer = null;           
+    window.myPeer = null;            
     window.localVideoStream = null;
     
     window.draftExamQuestions = [];
@@ -1407,6 +1407,158 @@
             <tr><td>دقائق التركيز اليوم:</td><td><span class="badge badge-green">${myStudyMins} دقيقة</span></td></tr>
         `;
     }
+
+    // --- Added Missing Functions for Dashboard, Polling, & Student Features ---
+    function updateAdminDashboardStats() {
+        if($('statSchools')) $('statSchools').innerText = db.schools.length;
+        if($('statStudents')) $('statStudents').innerText = db.students.length;
+        if($('statSubjects')) $('statSubjects').innerText = db.subjects.length;
+        let totalSecs = db.sessionLogs ? db.sessionLogs.reduce((sum, log) => sum + (log.durationSeconds || 0), 0) : 0;
+        if($('statHours')) $('statHours').innerText = Math.floor(totalSecs / 3600);
+    }
+
+    function startAdminPolling() {
+        if(window.adminPollingInterval) clearInterval(window.adminPollingInterval);
+        window.adminPollingInterval = setInterval(() => {
+            if(!$('admin-dashboard').classList.contains('active')) return;
+            let container = $('liveStatusContainer');
+            if(!container) return;
+            let active = [];
+            for (const [sId, data] of Object.entries(db.activeSessions || {})) {
+                if (data && data.active) {
+                    let st = db.students.find(x => x.id === sId);
+                    if(st) active.push({ id: sId, name: st.name });
+                }
+            }
+            if(active.length === 0) {
+                container.innerHTML = 'لا يوجد طلاب في وضع المذاكرة حالياً.';
+            } else {
+                container.innerHTML = active.map(a => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:10px; border-radius:6px; border:1px solid var(--border); margin-bottom:10px;">
+                        <span><div class="pulse-red" style="display:inline-block; margin-left:5px;"></div> ${a.name} (متصل الآن)</span>
+                        <button class="btn btn-small btn-primary" onclick="watchStudentCamera('${a.id}', '${a.name}')"><i class="fa-solid fa-video"></i> مراقبة</button>
+                    </div>
+                `).join('');
+            }
+        }, 5000);
+    }
+
+    function populateStudentDropdowns() {
+        let subOpts = '<option value="">-- اختر المادة --</option>';
+        if(window.currentUser) {
+            db.subjects.filter(s => s.grade === window.currentUser.grade && s.schoolId === window.currentUser.schoolId)
+                .forEach(s => subOpts += `<option value="${s.id}">${s.name} (${s.term})</option>`);
+        }
+        if($('logSubject')) $('logSubject').innerHTML = subOpts;
+        if($('actSubject')) $('actSubject').innerHTML = subOpts;
+    }
+
+    function renderStudentTables() {
+        if(!$('tableStdActivities')) return;
+        let html = '<thead><tr><th>التاريخ</th><th>النوع</th><th>الإنجاز</th></tr></thead><tbody>';
+        let myAct = db.activities.filter(a => a.sId === window.currentUser.id);
+        if(myAct.length === 0) {
+            html += '<tr><td colspan="3" style="text-align:center">لا يوجد نشاطات مسجلة</td></tr>';
+        } else {
+            html += myAct.map(a => `<tr><td>${a.date}</td><td><span class="badge badge-orange">${a.type}</span></td><td>${a.title}</td></tr>`).join('');
+        }
+        $('tableStdActivities').innerHTML = html + '</tbody>';
+    }
+
+    // --- Student Interactive Actions ---
+    window.switchStdLogType = function(type) {
+        if($('currentLogType')) $('currentLogType').value = type;
+        if($('tabHarvest')) $('tabHarvest').className = type === 'harvest' ? 'btn btn-primary flex-1' : 'btn btn-outline flex-1';
+        if($('tabStudy')) $('tabStudy').className = type === 'study' ? 'btn btn-primary flex-1' : 'btn btn-outline flex-1';
+        if($('tabReview')) $('tabReview').className = type === 'review' ? 'btn btn-primary flex-1' : 'btn btn-outline flex-1';
+        if($('harvestFields')) $('harvestFields').style.display = type === 'harvest' ? 'flex' : 'none';
+    };
+
+    window.saveStudentLog = function() {
+        let type = v('currentLogType'), subId = v('logSubject'), start = v('logStart'), end = v('logEnd');
+        if(!subId || !start || !end) return showToast('يرجى تعبئة جميع الحقول المطلوبة', 'bg-error');
+        
+        let logData = { id: generateId(), sId: window.currentUser.id, subId, start, end, date: new Date().toLocaleDateString('ar-SA'), isoDate: getTodayIso() };
+        if(type === 'harvest') {
+            logData.period = v('logPeriod'); logData.lesson = v('logLesson');
+            db.harvest.push(logData);
+        } else if (type === 'study') {
+            db.study.push(logData);
+        } else {
+            db.review.push(logData);
+        }
+        saveDb(); updateStudentDashboardStats(); showToast('تم حفظ الإنجاز بنجاح!', 'bg-success');
+        $('logStart').value = ''; $('logEnd').value = ''; $('logLesson').value = ''; $('logPeriod').value = '';
+    };
+
+    window.saveActivity = function() {
+        let type = v('actType'), subId = v('actSubject'), title = v('actTitle');
+        if(!title) return showToast('يرجى وصف الإنجاز', 'bg-error');
+        db.activities.push({ id: generateId(), sId: window.currentUser.id, subId, type, title, date: new Date().toLocaleDateString('ar-SA'), isoDate: getTodayIso() });
+        saveDb(); updateStudentDashboardStats(); renderStudentTables(); showToast('تم اعتماد الإنجاز!', 'bg-success');
+        $('actTitle').value = '';
+    };
+
+    let sessionActive = false;
+    let sessionSeconds = 0;
+    window.toggleStudySession = function() {
+        let btn = $('btnToggleSession');
+        if(!sessionActive) {
+            sessionActive = true;
+            btn.innerHTML = '<i class="fa-solid fa-stop"></i> إنهاء المذاكرة (جاري التسجيل)';
+            btn.className = 'btn btn-danger';
+            sessionSeconds = 0;
+            startStudentCamera();
+            
+            if(!db.activeSessions) db.activeSessions = {};
+            db.activeSessions[window.currentUser.id] = { active: true, startTime: Date.now() };
+            saveDb();
+
+            window.studentTimerInterval = setInterval(() => {
+                sessionSeconds++;
+                let h = Math.floor(sessionSeconds / 3600).toString().padStart(2, '0');
+                let m = Math.floor((sessionSeconds % 3600) / 60).toString().padStart(2, '0');
+                let s = (sessionSeconds % 60).toString().padStart(2, '0');
+                $('stdTimerDisplay').innerText = `${h}:${m}:${s}`;
+            }, 1000);
+        } else {
+            sessionActive = false;
+            btn.innerHTML = '<i class="fa-solid fa-play"></i> بدء المذاكرة';
+            btn.className = 'btn btn-success';
+            clearInterval(window.studentTimerInterval);
+            stopStudentCamera();
+            
+            if(db.activeSessions) delete db.activeSessions[window.currentUser.id];
+            
+            if(sessionSeconds >= 60) {
+                db.sessionLogs.push({ id: generateId(), sId: window.currentUser.id, durationSeconds: sessionSeconds, isoDate: getTodayIso(), date: new Date().toLocaleDateString('ar-SA') });
+                saveDb(); updateStudentDashboardStats();
+                showToast('تم حفظ الجلسة في رصيدك!', 'bg-success');
+            } else {
+                saveDb(); // لمسح الجلسة النشطة فقط
+                showToast('الجلسة أقصر من دقيقة، لم يتم احتسابها', 'bg-warning');
+            }
+            sessionSeconds = 0;
+            $('stdTimerDisplay').innerText = '00:00:00';
+        }
+    };
+
+    window.checkExistingSession = function() {
+        sessionActive = false;
+        if(window.studentTimerInterval) clearInterval(window.studentTimerInterval);
+        if($('stdTimerDisplay')) $('stdTimerDisplay').innerText = '00:00:00';
+        let btn = $('btnToggleSession');
+        if(btn) {
+            btn.innerHTML = '<i class="fa-solid fa-play"></i> بدء المذاكرة';
+            btn.className = 'btn btn-success';
+        }
+        
+        // إزالة الطالب من قائمة النشطين إذا قام بتحديث الصفحة
+        if(db.activeSessions && db.activeSessions[window.currentUser.id]) {
+            delete db.activeSessions[window.currentUser.id];
+            saveDb();
+        }
+    };
 
     // --- Utility Functions ---
     function populateAdminDropdowns() {
