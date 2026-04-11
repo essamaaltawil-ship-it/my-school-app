@@ -1034,21 +1034,21 @@
             
             for(let i = 1; i <= maxPages; i++) {
                 const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 1.5 }); // دقة ممتازة للقراءة
+                const viewport = page.getViewport({ scale: 1.2 }); // دقة متوازنة وممتازة للقراءة السريعة
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
                 
                 await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                const base64Img = canvas.toDataURL('image/png').split(',')[1];
+                const base64Img = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]; // ضغط كـ JPEG لتسريع النقل
                 
                 imageParts.push({
-                    inlineData: { mimeType: "image/png", data: base64Img }
+                    inlineData: { mimeType: "image/jpeg", data: base64Img }
                 });
             }
 
-            $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-robot fa-spin"></i> جاري تحليل المحتوى وبناء الأسئلة...';
+            $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-robot fa-spin"></i> جاري الاتصال بالذكاء الاصطناعي وتوليد الأسئلة...';
             await generateQuestionsFromImages(imageParts, key);
             
         } catch (e) {
@@ -1062,40 +1062,45 @@
 
     // 2. التواصل مع Gemini API باستخدام الصور (أذكى طريقة للقراءة)
     async function generateQuestionsFromImages(imageParts, key) {
-        // تم تغيير الموديل إلى النسخة المستقرة والمدعومة للجميع gemini-1.5-flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+        // البحث التلقائي عن الموديل المتاح والمدعوم في حسابك لتفادي خطأ Not Found
+        let selectedModel = 'gemini-1.5-flash-latest'; // الموديل الافتراضي الأقوى
+        try {
+            const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+            const modelsData = await modelsRes.json();
+            if (modelsData.models) {
+                const available = modelsData.models.map(m => m.name);
+                if (available.includes('models/gemini-1.5-flash-latest')) selectedModel = 'gemini-1.5-flash-latest';
+                else if (available.includes('models/gemini-1.5-flash')) selectedModel = 'gemini-1.5-flash';
+                else if (available.includes('models/gemini-1.5-pro-latest')) selectedModel = 'gemini-1.5-pro-latest';
+                else if (available.includes('models/gemini-1.5-pro')) selectedModel = 'gemini-1.5-pro';
+            }
+        } catch(e) { console.warn("تعذر جلب قائمة الموديلات، سيتم استخدام الموديل الافتراضي.", e); }
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${key}`;
         
         const promptText = `
         أنت معلم وخبير تربوي. قم بقراءة وتحليل صور صفحات المنهج المرفقة، وقم بتوليد 5 أسئلة ذكية لاختبار فهم واستيعاب الطالب للمحتوى الموجود فيها.
-        أريد الأسئلة أن تكون باللغة العربية حصراً، ومتنوعة في الأنواع التالية:
-        1. خيارات متعددة (mcq): سؤال مع 4 خيارات واضحة ومنطقية.
-        2. صح أو خطأ (tf): سؤال بخيارين فقط (صح، خطأ).
-        3. سؤال مباشر (direct): سؤال مقالي قصير يقيس الفهم العميق ويحتاج إجابة نصية قصيرة.
+        يجب أن يكون الرد عبارة عن مصفوفة JSON فقط (بدون أي نصوص قبلها أو بعدها) تحتوي على كائنات بالصيغة التالية بالضبط:
+        [
+          {
+            "type": "mcq", 
+            "question": "نص السؤال هنا",
+            "options": ["خيار1", "خيار2", "خيار3", "خيار4"],
+            "correctAnswer": "الخيار الصحيح بالضبط"
+          }
+        ]
+        الأنواع المسموحة في حقل type هي:
+        1. mcq (خيارات متعددة - 4 خيارات)
+        2. tf (صح أو خطأ - خيارين فقط في مصفوفة options هما "صح", "خطأ")
+        3. direct (سؤال مباشر - اترك مصفوفة options فارغة [])
         `;
 
         const parts = [{ text: promptText }, ...imageParts];
 
+        // تم إزالة القيود الهيكلية (Schema) التي كانت تسبب الرفض، والاكتفاء بتحديد نوع الرد
         const payload = {
-            contents: [{
-                role: "user",
-                parts: parts
-            }],
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            type: { type: "STRING", description: "Must be exactly: 'mcq', 'tf', or 'direct'" },
-                            question: { type: "STRING", description: "نص السؤال" },
-                            options: { type: "ARRAY", items: { type: "STRING" }, description: "المشتتات والخيارات (4 للخيار المتعدد، فارغ للأنواع الأخرى)" },
-                            correctAnswer: { type: "STRING", description: "الإجابة الصحيحة الدقيقة (للخيارات أو الصح والخطأ) أو الإجابة النموذجية (للسؤال المباشر)" }
-                        },
-                        required: ["type", "question", "options", "correctAnswer"]
-                    }
-                }
-            }
+            contents: [{ role: "user", parts: parts }],
+            generationConfig: { responseMimeType: "application/json" }
         };
 
         try {
@@ -1113,19 +1118,19 @@
 
             generatedQuestions.forEach(q => {
                 window.draftExamQuestions.push({
-                    type: q.type,
-                    question: q.question,
+                    type: q.type || 'direct',
+                    question: q.question || 'سؤال بدون نص',
                     options: q.options || ['', '', '', ''],
-                    correctAnswer: q.correctAnswer
+                    correctAnswer: q.correctAnswer || ''
                 });
             });
 
             renderDraftQuestions();
-            showToast('تم مسح الملف واستخراج الأسئلة الذكية بنجاح!', 'bg-success');
+            showToast('تم استخراج الأسئلة الذكية بنجاح! راجعها الآن.', 'bg-success');
 
         } catch (error) {
             console.error("Gemini API Error:", error);
-            showToast('خطأ في واجهة الذكاء الاصطناعي (تأكد من صحة الـ API Key): ' + error.message, 'bg-error');
+            showToast('حدث خطأ في توليد الأسئلة: ' + error.message, 'bg-error');
         }
     }
 
