@@ -189,6 +189,7 @@
             <a class="nav-link" onclick="nav('admin-students', this)"><i class="fa-solid fa-users"></i> إدارة الطلاب</a>
             <a class="nav-link" onclick="nav('admin-attendance', this)"><i class="fa-solid fa-calendar-check"></i> سجل الحضور</a>
             <a class="nav-link" onclick="nav('admin-exams', this)"><i class="fa-solid fa-file-signature"></i> سجل الاختبارات</a>
+            <a class="nav-link" onclick="nav('admin-logs', this)"><i class="fa-solid fa-book-journal-whills"></i> سجل المذاكرة والأنشطة</a>
             <a class="nav-link" onclick="nav('admin-reports', this)"><i class="fa-solid fa-file-invoice"></i> التقرير الشامل</a>
             <hr style="border:none; border-top:1px solid rgba(255,255,255,0.05); margin: 10px 20px;">
             <a class="nav-link" onclick="nav('admin-permissions', this)" style="color:#fbbf24;"><i class="fa-solid fa-user-lock"></i> صلاحيات الطلاب</a>
@@ -358,15 +359,6 @@
                         <div class="form-group"><label>المادة</label><select id="aiExSubject"></select></div>
                         <div class="form-group"><label>عنوان الاختبار (نطاق المذاكرة)</label><input type="text" id="aiExTitle" placeholder="مثال: مراجعة الوحدة الأولى - ص 10 إلى 15"></div>
                         
-                        <!-- إعداد مفتاح API -->
-                        <div style="background: #fff7ed; padding: 15px; border-radius: 12px; border: 1px solid #fed7aa; margin-bottom: 20px;">
-                            <h4 style="color: #c2410c; margin-bottom: 10px;"><i class="fa-solid fa-key"></i> مفتاح الذكاء الاصطناعي (Gemini API Key)</h4>
-                            <input type="password" id="geminiApiKey" placeholder="الصق مفتاح AIzaSy... هنا" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #fed7aa; outline: none;" oninput="localStorage.setItem('gemini_api_key', this.value)">
-                            <p style="font-size: 0.85rem; color: #9a3412; margin-top: 8px;">
-                                بدون هذا المفتاح لن يتمكن النظام من قراءة الملف. <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: underline;">اضغط هنا لإنشاء مفتاح مجاني</a> (يُحفظ في متصفحك سرياً).
-                            </p>
-                        </div>
-
                         <!-- PDF Upload Area -->
                         <div style="background: #faf5ff; padding: 20px; border-radius: 12px; border: 2px dashed var(--purple); margin-bottom: 20px; text-align: center;">
                             <i class="fa-solid fa-file-pdf" style="font-size: 2.5rem; color: var(--purple); margin-bottom: 10px;"></i>
@@ -455,6 +447,21 @@
                 </div>
                 <div class="card">
                     <div class="table-responsive"><table id="tableExams"></table></div>
+                </div>
+            </div>
+
+            <!-- Admin Logs Management (NEW) -->
+            <div id="admin-logs" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-book-journal-whills"></i> إدارة سجل المذاكرة والأنشطة</h2>
+                <div class="card">
+                    <p style="color: var(--text-light); margin-bottom: 15px; font-size: 0.9rem;">يمكنك هنا كمدير النظام عرض وحذف أي إنجاز سجله الطالب (حصاد، مذاكرة، مراجعة، أو أنشطة) في حال كان هناك خطأ في الإدخال.</p>
+                    <div class="form-group" style="max-width: 400px;">
+                        <label>اختر الطالب:</label>
+                        <select id="adminLogsStudent" onchange="renderAdminLogsTable()"></select>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-responsive"><table id="tableAdminLogs"></table></div>
                 </div>
             </div>
 
@@ -662,6 +669,18 @@
     </div>
 </div>
 
+<!-- Custom Confirm Modal -->
+<div id="customConfirmModal" class="modal-overlay" style="z-index: 9999;">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <h3 style="margin-bottom: 15px; color: var(--dark); font-size: 1.5rem;"><i class="fa-solid fa-circle-exclamation" style="color: var(--warning);"></i> تأكيد</h3>
+        <p id="customConfirmMsg" style="margin-bottom: 25px; color: var(--text-light);"></p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="customConfirmYes" class="btn btn-danger" style="flex: 1;">نعم، تأكيد</button>
+            <button id="customConfirmNo" class="btn btn-outline" style="flex: 1;">إلغاء</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal للترقية -->
 <div id="promoteModal" class="modal-overlay">
     <div class="modal-content">
@@ -703,25 +722,33 @@
 </div>
 
 <!-- ======================================================== -->
-<!-- ENGINE & LOGIC (V5 - Ultimate AI & Beautiful Toasts) -->
+<!-- ENGINE & LOGIC -->
 <!-- ======================================================== -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const NETLIFY_FIREBASE_CONFIG = {
-        apiKey: "AIzaSyC0e3tQOKFNFK4od16RsWGSSPipCporeis",
-        authDomain: "school-27abe.firebaseapp.com",
-        projectId: "school-27abe",
-        storageBucket: "school-27abe.firebasestorage.app",
-        messagingSenderId: "842873944470",
-        appId: "1:842873944470:web:3a658865dc961b2b10c5b7"
-    }; 
-
-    const isCanvas = (typeof __firebase_config !== 'undefined') && (!window.location.hostname.includes('netlify.app'));
-    const firebaseConfig = isCanvas ? JSON.parse(__firebase_config) : NETLIFY_FIREBASE_CONFIG;
+    // Setup Firebase based on strict rules
+    let firebaseConfig;
+    let appId = 'default-app-id';
     
+    if (typeof __firebase_config !== 'undefined') {
+        firebaseConfig = JSON.parse(__firebase_config);
+        appId = typeof __app_id !== 'undefined' ? __app_id : appId;
+    } else {
+        // Fallback for local testing if needed
+        firebaseConfig = {
+            apiKey: "AIzaSyC0e3tQOKFNFK4od16RsWGSSPipCporeis",
+            authDomain: "school-27abe.firebaseapp.com",
+            projectId: "school-27abe",
+            storageBucket: "school-27abe.firebasestorage.app",
+            messagingSenderId: "842873944470",
+            appId: "1:842873944470:web:3a658865dc961b2b10c5b7"
+        }; 
+    }
+    
+    // API Key must be empty per rules
     const apiKey = ""; 
 
     const DEFAULT_DB = { 
@@ -736,14 +763,12 @@
     
     let db = DEFAULT_DB;
     let dbRef = null;
-    let firestoreDb = null;
     
     window.currentUser = null;
     window.studentTimerInterval = null;
     window.adminPollingInterval = null;
     window.myPeer = null;            
     window.localVideoStream = null;
-    
     window.draftExamQuestions = [];
 
     function $(id) { return document.getElementById(id); }
@@ -751,7 +776,16 @@
     function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
     function getTodayIso() { return new Date().toISOString().split('T')[0]; }
     
-    // تصميم الإشعارات الجديد (ملون، بأيقونات، ولا يتأثر بالخلفيات البيضاء)
+    // Custom Confirm to avoid browser alerts
+    window.customConfirm = function(msg) {
+        return new Promise((resolve) => {
+            $('customConfirmMsg').innerText = msg;
+            $('customConfirmModal').style.display = 'flex';
+            $('customConfirmYes').onclick = () => { $('customConfirmModal').style.display = 'none'; resolve(true); };
+            $('customConfirmNo').onclick = () => { $('customConfirmModal').style.display = 'none'; resolve(false); };
+        });
+    };
+
     window.showToast = function(msg, bgClass = 'bg-success') {
         let t = $('toast'); 
         if(!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
@@ -785,61 +819,66 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    firestoreDb = getFirestore(app);
+    const firestoreDb = getFirestore(app);
 
+    // Rule 3: Auth First
     const initAuth = async () => {
         try {
-            if (isCanvas && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                 await signInWithCustomToken(auth, __initial_auth_token);
-            } else { await signInAnonymously(auth); }
+            } else { 
+                await signInAnonymously(auth); 
+            }
         } catch(e) { console.warn("Auth err:", e); }
     };
     initAuth();
 
     onAuthStateChanged(auth, (user) => {
-        if(user) {
-            dbRef = doc(firestoreDb, isCanvas ? `artifacts/${__app_id}/public/data/qais_system/main_database` : 'qais_system/main_database');
-            
-            onSnapshot(dbRef, (docSnap) => {
-                const csLogin = $('cloudStatusLogin'); const csApp = $('cloudStatusApp');
-                if(csLogin) { csLogin.innerHTML = '<i class="fa-solid fa-cloud-check"></i> متصل بالسحابة'; csLogin.classList.add('connected'); }
-                if(csApp) { csApp.innerHTML = '<i class="fa-solid fa-cloud-check"></i> السحابة متصلة'; csApp.classList.add('connected'); }
+        if(!user) return; // Guard clause
+        
+        // Rule 1: Strict Paths -> Using a collection with a specific document
+        // Path: /artifacts/{appId}/public/data/qais_system_v1/main_database
+        dbRef = doc(firestoreDb, 'artifacts', appId, 'public', 'data', 'qais_system_v1', 'main_database');
+        
+        onSnapshot(dbRef, (docSnap) => {
+            const csLogin = $('cloudStatusLogin'); const csApp = $('cloudStatusApp');
+            if(csLogin) { csLogin.innerHTML = '<i class="fa-solid fa-cloud-check"></i> متصل بالسحابة'; csLogin.classList.add('connected'); }
+            if(csApp) { csApp.innerHTML = '<i class="fa-solid fa-cloud-check"></i> السحابة متصلة'; csApp.classList.add('connected'); }
 
-                if(docSnap.exists()) {
-                    let cloudData = docSnap.data();
-                    db = { ...DEFAULT_DB, ...cloudData };
-                    ['schools', 'exams', 'attendance', 'activities', 'aiExams'].forEach(arr => { if(!db[arr]) db[arr] = []; });
+            if(docSnap.exists()) {
+                let cloudData = docSnap.data();
+                db = { ...DEFAULT_DB, ...cloudData };
+                ['schools', 'exams', 'attendance', 'activities', 'aiExams'].forEach(arr => { if(!db[arr]) db[arr] = []; });
+                
+                let needsSave = false;
+                
+                if (db.schools.length === 0 && (db.students.length > 0 || db.subjects.length > 0)) {
+                    let defaultSchoolId = generateId();
+                    db.schools.push({ id: defaultSchoolId, name: 'المدرسة الرئيسية (سابقة)', principal: '-', vicePrincipal: '-' });
+                    needsSave = true;
                     
-                    let needsSave = false;
-                    
-                    if (db.schools.length === 0 && (db.students.length > 0 || db.subjects.length > 0)) {
-                        let defaultSchoolId = generateId();
-                        db.schools.push({ id: defaultSchoolId, name: 'المدرسة الرئيسية (سابقة)', principal: '-', vicePrincipal: '-' });
-                        needsSave = true;
-                        
-                        db.students.forEach(s => { if (!s.schoolId) s.schoolId = defaultSchoolId; });
-                        db.teachers.forEach(t => { if (!t.schoolId) t.schoolId = defaultSchoolId; });
-                        db.subjects.forEach(sub => { if (!sub.schoolId) sub.schoolId = defaultSchoolId; });
-                    }
-
-                    db.students.forEach(st => { 
-                        if(!st.permissions) { 
-                            st.permissions = { canStudy: true, canActivity: true, canAiExams: true }; 
-                            needsSave = true;
-                        } 
-                    });
-
-                    if(!db.settings) { db.settings = DEFAULT_DB.settings; needsSave = true; }
-                    
-                    refreshDataUI();
-
-                    if(needsSave) { setDoc(dbRef, db).catch(e => console.warn(e)); }
-
-                } else {
-                    setDoc(dbRef, DEFAULT_DB).catch(console.warn);
+                    db.students.forEach(s => { if (!s.schoolId) s.schoolId = defaultSchoolId; });
+                    db.teachers.forEach(t => { if (!t.schoolId) t.schoolId = defaultSchoolId; });
+                    db.subjects.forEach(sub => { if (!sub.schoolId) sub.schoolId = defaultSchoolId; });
                 }
-            }, (err) => { console.warn("Snap err", err); });
-        }
+
+                db.students.forEach(st => { 
+                    if(!st.permissions) { 
+                        st.permissions = { canStudy: true, canActivity: true, canAiExams: true }; 
+                        needsSave = true;
+                    } 
+                });
+
+                if(!db.settings) { db.settings = DEFAULT_DB.settings; needsSave = true; }
+                
+                refreshDataUI();
+
+                if(needsSave) { setDoc(dbRef, db).catch(e => console.warn(e)); }
+
+            } else {
+                setDoc(dbRef, DEFAULT_DB).catch(console.warn);
+            }
+        }, (err) => { console.warn("Snap err", err); }); // Required Error Callback
     });
 
     function saveDb() { 
@@ -905,6 +944,7 @@
             renderAdminTables();
             populateAdminDropdowns();
             renderAdminAiExams();
+            if($('admin-logs').classList.contains('active')) renderAdminLogsTable();
             if($('admin-reports').classList.contains('active')) generateComprehensiveReport();
         } else {
             updateStudentDashboardStats();
@@ -994,19 +1034,6 @@
     // ==========================================
     
     window.processPdfForExams = async function(event) {
-        let inputElement = document.getElementById('geminiApiKey');
-        let key = inputElement ? inputElement.value.trim() : '';
-        if (!key) key = localStorage.getItem('gemini_api_key') || apiKey;
-
-        if (!key || key === '') {
-            showToast('خطأ: يرجى جلب مفتاح الذكاء الاصطناعي ولصقه في الخانة البرتقالية أولاً!', 'bg-error');
-            event.target.value = '';
-            return;
-        }
-
-        // حفظ المفتاح
-        localStorage.setItem('gemini_api_key', key);
-
         const file = event.target.files[0];
         if(!file) return;
         
@@ -1022,11 +1049,10 @@
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
             
-            // قراءة 5 صفحات كحد أقصى لتجنب استهلاك الحصة المجانية (Quota)
             const maxPages = Math.min(pdf.numPages, 5);
             let extractedText = '';
             
-            // المحاولة الأولى: استخراج النصوص مباشرة (خفيف جداً ومجاني تقريباً)
+            // Extract text
             for(let i = 1; i <= maxPages; i++) {
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
@@ -1035,14 +1061,14 @@
             }
 
             let promptPayload = null;
+            const systemPrompt = "أنت معلم تربوي وخبير في صياغة الاختبارات. قم بتوليد 5 أسئلة من المنهج المرفق لتختبر فهم الطالب. يجب أن يكون الرد عبارة عن مصفوفة JSON صالحة تماماً فقط.";
 
-            // إذا وجد النظام نصوصاً داخل الـ PDF
             if (extractedText.trim().length > 100) {
                 $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-bolt fa-spin"></i> تم العثور على نصوص! جاري التوليد السريع...';
                 
                 const promptText = `
-                أنت معلم تربوي. بناءً على النص التالي، قم بتوليد 5 أسئلة لاختبار فهم الطالب باللغة العربية.
-                يجب أن يكون الرد عبارة عن مصفوفة JSON فقط:
+                بناءً على النص التالي، قم بتوليد 5 أسئلة لاختبار فهم الطالب باللغة العربية.
+                الصيغة المطلوبة JSON مصفوفة:
                 [
                   {"type": "mcq", "question": "السؤال", "options": ["خيار1","خيار2","خيار3","خيار4"], "correctAnswer": "الإجابة الصحيحة"}
                 ]
@@ -1052,22 +1078,21 @@
                 3. direct (سؤال مباشر - مصفوفة options فارغة [])
                 
                 النص المدروس:
-                ${extractedText.substring(0, 15000)}
+                ${extractedText.substring(0, 10000)}
                 `;
                 
                 promptPayload = { 
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
                     contents: [{ role: "user", parts: [{text: promptText}] }], 
                     generationConfig: { responseMimeType: "application/json" } 
                 };
             } 
-            // المحاولة الثانية: إذا كان الملف عبارة عن صور (سكانر)
             else {
-                $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-camera fa-spin"></i> الملف صور، جاري المسح الضوئي (قد يستغرق وقتاً)...';
+                $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-camera fa-spin"></i> الملف صور، جاري المسح الضوئي...';
                 let imageParts = [];
-                // نأخذ صفحتين فقط لتقليل الضغط على الحد المجاني
                 for(let i = 1; i <= Math.min(maxPages, 2); i++) {
                     const page = await pdf.getPage(i);
-                    const viewport = page.getViewport({ scale: 1.0 }); // دقة منخفضة لتوفير التوكنز
+                    const viewport = page.getViewport({ scale: 1.0 });
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     canvas.height = viewport.height;
@@ -1077,44 +1102,38 @@
                     imageParts.push({ inlineData: { mimeType: "image/jpeg", data: base64Img } });
                 }
                 
-                const promptText = `
-                أنت معلم. استخرج 5 أسئلة من صور هذا المنهج بصيغة JSON مصفوفة تحتوي على (type, question, options, correctAnswer) بنفس شروط الأنواع (mcq, tf, direct).
-                `;
+                const promptText = `استخرج 5 أسئلة من صور هذا المنهج بصيغة JSON مصفوفة تحتوي على (type, question, options, correctAnswer) بنفس شروط الأنواع (mcq, tf, direct).`;
                 
                 promptPayload = { 
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
                     contents: [{ role: "user", parts: [{ text: promptText }, ...imageParts] }], 
                     generationConfig: { responseMimeType: "application/json" } 
                 };
             }
 
-            // إرسال الطلب الذكي
-            await callGeminiAPI(promptPayload, key);
+            await callGeminiAPI(promptPayload);
             
         } catch (e) {
             console.error("System Error: ", e);
-            showToast('خطأ: ' + e.message, 'bg-error');
+            showToast('خطأ في معالجة الملف: ' + e.message, 'bg-error');
         } finally {
             $('aiLoadingIndicator').style.display = 'none';
             event.target.value = ''; 
         }
     };
 
-    async function callGeminiAPI(payload, key) {
-        // قائمة الموديلات التي سنجربها بالترتيب لضمان عمل أحدها
-        const modelsToTry = [
-            'gemini-1.5-flash',
-            'gemini-1.5-flash-8b',
-            'gemini-2.0-flash-lite-preview-02-05'
-        ];
+    async function callGeminiAPI(payload) {
+        // Strict requirement: gemini-2.5-flash-preview-09-2025
+        const model = 'gemini-2.5-flash-preview-09-2025';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        
+        const delays = [1000, 2000, 4000, 8000, 16000];
+        let lastError = null;
 
-        let success = false;
-        let lastError = '';
-
-        for (const model of modelsToTry) {
-            $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-robot fa-spin"></i> جاري التوليد باستخدام (${model})...`;
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-            
+        for (let i = 0; i < 6; i++) {
             try {
+                $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-robot fa-spin"></i> جاري توليد الأسئلة الذكية (محاولة ${i+1})...`;
+                
                 const response = await fetch(url, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -1128,7 +1147,6 @@
                 }
 
                 let responseText = result.candidates[0].content.parts[0].text;
-                responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
                 const generatedQuestions = JSON.parse(responseText);
 
                 generatedQuestions.forEach(q => {
@@ -1141,24 +1159,19 @@
                 });
 
                 renderDraftQuestions();
-                showToast('تم استخراج الأسئلة الذكية بنجاح! راجعها الآن.', 'bg-success');
-                success = true;
-                break; // نخرج من اللوب إذا نجح
+                showToast('تم استخراج الأسئلة الذكية بنجاح!', 'bg-success');
+                return; // Success, exit loop
 
             } catch (err) {
-                console.warn(`فشل الموديل ${model}:`, err.message);
-                lastError = err.message;
-                
-                // إذا كان الخطأ بسبب الحصص (Quota) نتوقف فوراً ونبلغ المستخدم
-                if (lastError.toLowerCase().includes('quota') || lastError.toLowerCase().includes('429')) {
-                    throw new Error("لقد استنفدت الحد المجاني للذكاء الاصطناعي (Quota Exceeded). يرجى المحاولة غداً أو استخدام مفتاح جديد.");
+                lastError = err;
+                console.warn(`Attempt ${i+1} failed:`, err.message);
+                if (i < 5) {
+                    await new Promise(r => setTimeout(r, delays[i]));
                 }
             }
         }
-
-        if (!success) {
-            throw new Error(lastError);
-        }
+        
+        throw new Error(`فشل توليد الأسئلة بعد 5 محاولات. تفاصيل الخطأ: ${lastError?.message}`);
     }
 
     // 3. إدارة مسودة الأسئلة في واجهة الإدارة
@@ -1450,8 +1463,8 @@
         container.innerHTML = html;
     }
 
-    window.submitStudentAiExam = function(examId) {
-        if(!confirm('هل أنت متأكد من تسليم الإجابات؟ تأكد من مراجعتها جيداً فلن تتمكن من تعديلها لاحقاً.')) return;
+    window.submitStudentAiExam = async function(examId) {
+        if(!(await window.customConfirm('هل أنت متأكد من تسليم الإجابات؟ تأكد من مراجعتها جيداً فلن تتمكن من تعديلها لاحقاً.'))) return;
         
         let ex = db.aiExams.find(x => x.id === examId);
         if(!ex) return;
@@ -1657,6 +1670,7 @@
         if($('repStudent')) $('repStudent').innerHTML = stOpts;
         if($('permStudentSelect')) { let current = $('permStudentSelect').value; $('permStudentSelect').innerHTML = stOpts; if(current) $('permStudentSelect').value = current; }
         if($('aiExStudent')) { let current = $('aiExStudent').value; $('aiExStudent').innerHTML = stOpts; if(current) $('aiExStudent').value = current; }
+        if($('adminLogsStudent')) { let current = $('adminLogsStudent').value; $('adminLogsStudent').innerHTML = stOpts; if(current) $('adminLogsStudent').value = current; }
         
         if($('exStudent')) filterSubjectsByStudent('exStudent', 'exSubject');
         if($('aiExStudent')) filterSubjectsByStudent('aiExStudent', 'aiExSubject');
@@ -1785,8 +1799,68 @@
     window.addArraySetting = function(arr, inputId) {
         if(!v(inputId)) return; db.settings[arr].push(v(inputId)); saveDb(); $(inputId).value='';
     };
-    window.delArraySetting = function(arr, index) { db.settings[arr].splice(index, 1); saveDb(); };
-    window.delRec = function(arr, id) { if(confirm('متأكد من الحذف؟')) { db[arr] = db[arr].filter(x => x.id !== id); saveDb(); } };
+    
+    window.delArraySetting = async function(arr, index) { 
+        if(await window.customConfirm('تأكيد الحذف؟')) {
+            db.settings[arr].splice(index, 1); saveDb(); 
+        }
+    };
+    
+    window.delRec = async function(arr, id) { 
+        if(await window.customConfirm('متأكد من عملية الحذف؟ لا يمكن التراجع عنها.')) { 
+            db[arr] = db[arr].filter(x => x.id !== id); saveDb(); 
+        } 
+    };
+
+    // --- Admin Logs Management ---
+    window.renderAdminLogsTable = function() {
+        let sId = v('adminLogsStudent');
+        let html = '<thead><tr><th>التاريخ</th><th>القسم</th><th>النوع/المادة</th><th>التفاصيل</th><th>إجراء</th></tr></thead><tbody>';
+        if(!sId) {
+            if($('tableAdminLogs')) $('tableAdminLogs').innerHTML = html + '<tr><td colspan="5" style="text-align:center">اختر طالباً لعرض السجل</td></tr></tbody>';
+            return;
+        }
+
+        let getSub = id => { let s = db.subjects.find(x=>x.id===id); return s?s.name:'-';};
+        let logs = [];
+
+        db.harvest.filter(x => x.sId === sId).forEach(x => logs.push({...x, cat: 'harvest', catName: 'حصاد المدرسة', color: 'badge-blue'}));
+        db.study.filter(x => x.sId === sId).forEach(x => logs.push({...x, cat: 'study', catName: 'مذاكرة ذاتية', color: 'badge-green'}));
+        db.review.filter(x => x.sId === sId).forEach(x => logs.push({...x, cat: 'review', catName: 'مراجعة', color: 'badge-purple'}));
+        db.activities.filter(x => x.sId === sId).forEach(x => logs.push({...x, cat: 'activities', catName: 'أنشطة وإثراء', color: 'badge-orange'}));
+
+        logs.sort((a,b) => new Date(b.isoDate || b.date) - new Date(a.isoDate || a.date));
+
+        if(logs.length === 0) {
+            html += '<tr><td colspan="5" style="text-align:center">لا توجد سجلات مُدخلة لهذا الطالب</td></tr>';
+        } else {
+            html += logs.map(l => {
+                let subName = l.cat === 'activities' ? l.type : getSub(l.subId);
+                let details = '';
+                if(l.cat === 'harvest') details = `حصة ${l.period} - ${l.lesson} (ص ${l.start}-${l.end})`;
+                else if(l.cat === 'study' || l.cat === 'review') details = `من ص ${l.start} إلى ص ${l.end}`;
+                else if(l.cat === 'activities') details = l.title;
+
+                return `<tr>
+                    <td>${l.isoDate || l.date}</td>
+                    <td><span class="badge ${l.color}">${l.catName}</span></td>
+                    <td>${subName}</td>
+                    <td>${details}</td>
+                    <td><button class="btn btn-small btn-danger" onclick="delStudentLog('${l.cat}', '${l.id}')"><i class="fa-solid fa-trash"></i></button></td>
+                </tr>`;
+            }).join('');
+        }
+        if($('tableAdminLogs')) $('tableAdminLogs').innerHTML = html + '</tbody>';
+    };
+
+    window.delStudentLog = async function(category, id) {
+        if(await window.customConfirm('هل أنت متأكد من حذف هذا السجل؟ سيتم خصم النقاط (XP) من الطالب تلقائياً.')) {
+            db[category] = db[category].filter(x => x.id !== id);
+            saveDb();
+            renderAdminLogsTable();
+            showToast('تم حذف السجل بنجاح', 'bg-success');
+        }
+    };
 
     window.generateComprehensiveReport = function() {
         let sId = v('repStudent'); if(!sId) { $('reportContainer').style.display='none'; return; }
@@ -1825,9 +1899,17 @@
         $('repTableExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الاختبار</th><th>الدرجة</th></tr></thead>` + 
             (myExams.length ? myExams.map(e => `<tr><td>${e.date}</td><td>${getSub(e.subId)}</td><td>${e.typeId} (${e.sourceId})</td><td style="font-weight:bold">${e.score} / ${e.max}</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
 
-        let myHarv = db.harvest.filter(dFilter);
+        let myHarv = db.harvest.filter(dFilter).map(x => ({...x, logType: 'حصاد', badge: 'badge-blue'}));
+        let myStudy = db.study.filter(dFilter).map(x => ({...x, logType: 'مذاكرة', badge: 'badge-green'}));
+        let myRev = db.review.filter(dFilter).map(x => ({...x, logType: 'مراجعة', badge: 'badge-purple'}));
+        
+        let allStudyLogs = [...myHarv, ...myStudy, ...myRev].sort((a, b) => new Date(b.isoDate || b.date) - new Date(a.isoDate || a.date));
+
         $('repTableStudy').innerHTML = `<thead><tr><th>التاريخ</th><th>النوع</th><th>المادة</th><th>الدرس/الصفحات</th></tr></thead>` + 
-            (myHarv.length ? myHarv.map(h => `<tr><td>${h.isoDate || h.date}</td><td><span class="badge badge-blue">حصاد</span></td><td>${getSub(h.subId)}</td><td>حصة ${h.period} - ${h.lesson} (${h.start}-${h.end})</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
+            (allStudyLogs.length ? allStudyLogs.map(h => {
+                let details = h.logType === 'حصاد' ? `حصة ${h.period} - ${h.lesson} (ص ${h.start}-${h.end})` : `(ص ${h.start}-${h.end})`;
+                return `<tr><td>${h.isoDate || h.date}</td><td><span class="badge ${h.badge}">${h.logType}</span></td><td>${getSub(h.subId)}</td><td>${details}</td></tr>`;
+            }).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
             
         let myAct = db.activities.filter(dFilter);
         $('repTableActivities').innerHTML = `<thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th></tr></thead>` + 
