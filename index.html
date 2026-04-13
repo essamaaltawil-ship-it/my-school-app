@@ -13,6 +13,8 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     </script>
+    <!-- مكتبة الرسوم البيانية للتقارير -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root { 
@@ -105,7 +107,6 @@
         
         .timer-display { font-size: 3.5rem; font-weight: 800; color: var(--dark); font-family: monospace; text-align: center; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         
-        .report-card { border-top: 5px solid var(--primary); }
         .stat-box { text-align: center; padding: 20px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--border); }
         .stat-number { font-size: 2rem; font-weight: 800; color: var(--primary); margin: 10px 0 5px; }
 
@@ -143,11 +144,88 @@
         .cam-label { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; }
         .pulse-red { width: 10px; height: 10px; background: #ef4444; border-radius: 50%; animation: pulse 1.5s infinite; }
 
+        /* ==========================================
+           Premium Report A4 Styles (NEW V5) 
+           ========================================== */
+        .report-wrapper { background: #cbd5e1; padding: 40px 20px; border-radius: 12px; overflow-x: auto; margin-bottom: 30px; display: none; }
+        .premium-a4 {
+            background: #fff;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 20mm;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            color: #1e293b;
+            position: relative;
+            box-sizing: border-box;
+        }
+        .rep-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            border-bottom: 3px double #cbd5e1; padding-bottom: 15px; margin-bottom: 25px;
+        }
+        .rep-header-text { font-size: 0.9rem; line-height: 1.6; color: #334155; font-weight: bold; }
+        .rep-header-logo { font-size: 3.5rem; color: var(--primary); text-align: center; opacity: 0.9; }
+        .rep-title { text-align: center; font-size: 1.8rem; font-weight: 800; color: #0f172a; margin-bottom: 5px; letter-spacing: -0.5px;}
+        .rep-subtitle { text-align: center; font-size: 0.95rem; color: #64748b; margin-bottom: 30px; letter-spacing: 1px;}
+
+        .rep-student-band {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #f8fafc; border: 1px solid #e2e8f0; border-right: 4px solid var(--primary);
+            padding: 15px 25px; border-radius: 8px; margin-bottom: 30px;
+        }
+        .rep-st-name { font-size: 1.4rem; font-weight: 800; color: #0f172a; margin-bottom: 3px; }
+        .rep-st-meta { font-size: 0.95rem; color: #475569; }
+
+        .rep-grid-top { display: grid; grid-template-columns: 1.2fr 1fr; gap: 25px; margin-bottom: 30px; }
+
+        .rep-ai-box {
+            background: linear-gradient(145deg, #f0fdfa 0%, #ffffff 100%);
+            border: 1px solid #bbf7d0; border-radius: 12px; padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .rep-ai-title { font-size: 1.1rem; color: #166534; font-weight: 800; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .rep-ai-text { font-size: 0.95rem; line-height: 2; color: #334155; text-align: justify;}
+
+        .rep-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;}
+        .rep-kpi-card { background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);}
+        .rep-kpi-val { font-size: 1.6rem; font-weight: 800; color: var(--primary); margin-bottom: 5px; }
+        .rep-kpi-lbl { font-size: 0.8rem; color: #64748b; font-weight: 700;}
+
+        .rep-section-title { font-size: 1.2rem; font-weight: 800; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 10px;}
+
+        .rep-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-bottom: 20px; }
+        .rep-table th { background: #f1f5f9; color: #475569; font-weight: 800; text-align: right; padding: 12px 15px; border-bottom: 2px solid #cbd5e1; }
+        .rep-table td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+        .rep-table tr:nth-child(even) td { background: #fafafa; }
+        .rep-table tr:last-child td { border-bottom: 2px solid #e2e8f0; }
+
+        .rep-signatures { display: flex; justify-content: space-between; margin-top: 60px; padding-top: 30px; }
+        .rep-sig-box { text-align: center; width: 30%; }
+        .rep-sig-title { font-weight: 700; color: #475569; margin-bottom: 40px; font-size: 0.95rem;}
+        .rep-sig-line { border-bottom: 1px dashed #94a3b8; width: 80%; margin: 0 auto; }
+
+        @media print {
+            @page { size: A4; margin: 0; }
+            body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .report-wrapper { background: none; padding: 0; display: block !important; margin: 0;}
+            .premium-a4 { box-shadow: none; width: 100%; max-width: 100%; min-height: 100vh; padding: 15mm; margin: 0; border: none; }
+            .sidebar, .topbar, .tabs, .menu-toggle, button, .modal-overlay, .section-title, .card { display: none !important; }
+            .main-content { margin: 0; padding: 0; overflow: visible; height: auto; display: block; background: white;}
+            .content-area { padding: 0; }
+            .section-view { display: none !important; }
+            #admin-reports.active, #std-reports.active { display: block !important; }
+            .page-break { page-break-before: always; }
+            .rep-ai-box, .rep-kpi-card, table, tr { break-inside: avoid; }
+        }
+
         @media (max-width: 768px) {
             .sidebar { position: fixed; left: -260px; height: 100vh; }
             .sidebar.open { left: 0; }
             .menu-toggle { display: block; }
             .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .rep-grid-top { grid-template-columns: 1fr; }
+            .premium-a4 { padding: 10mm; width: 100%; }
         }
     </style>
     <!-- استدعاء Tailwind CSS بشكل صحيح لضمان عمل الإشعارات -->
@@ -475,7 +553,7 @@
 
             <!-- Admin Reports (Comprehensive) -->
             <div id="admin-reports" class="section-view">
-                <h2 class="section-title"><i class="fa-solid fa-file-invoice"></i> التقرير الشامل (Report Card)</h2>
+                <h2 class="section-title"><i class="fa-solid fa-file-invoice"></i> التقرير الأكاديمي والتحليلي</h2>
                 <div class="card" style="background: #eff6ff; border-color: #bfdbfe;">
                     <div class="grid-3">
                         <div class="form-group"><label>اختر الطالب لإصدار تقريره:</label><select id="repStudent" onchange="generateComprehensiveReport()"></select></div>
@@ -484,43 +562,93 @@
                     </div>
                 </div>
 
-                <div id="repContainer" style="display: none;">
-                    <div class="card report-card" id="printArea">
-                        <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px dashed var(--border);">
-                            <h1 style="color: var(--primary-dark); margin-bottom: 5px;">كشف الأداء الأكاديمي الشامل</h1>
-                            <h3 id="repStName" style="color: var(--dark); font-size: 1.8rem; margin-bottom: 5px;"></h3>
-                            <h4 id="repStSchool" style="color: var(--primary); margin-bottom: 10px;"></h4>
-                            <p id="repStDetails" style="color: var(--text-light); font-size: 0.9rem;"></p>
-                        </div>
-
-                        <!-- Statistics -->
-                        <div class="grid-4" style="margin-bottom: 30px;">
-                            <div class="stat-box"><div style="font-size: 2rem;">🎯</div><div class="stat-number" id="repAvgScore">0%</div><div>المتوسط العام للاختبارات</div></div>
-                            <div class="stat-box"><div style="font-size: 2rem;">⏱️</div><div class="stat-number" id="repStudyHours">0</div><div>ساعات المذاكرة الموثقة</div></div>
-                            <div class="stat-box"><div style="font-size: 2rem;">⚠️</div><div class="stat-number" id="repAbsence" style="color: var(--danger);">0</div><div>أيام الغياب</div></div>
-                            <div class="stat-box"><div style="font-size: 2rem;">🏆</div><div class="stat-number" id="repXP" style="color: var(--warning);">0</div><div>نقاط الإنجاز (XP)</div></div>
-                        </div>
-
-                        <!-- Details Tables -->
-                        <h3 style="margin-bottom: 10px; color: var(--purple);"><i class="fa-solid fa-robot"></i> تقييمات مراجعة الوالد (AI)</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableAiExams"></table></div>
-
-                        <h3 style="margin-bottom: 10px; color: var(--primary);"><i class="fa-solid fa-file-signature"></i> سجل الاختبارات والقياس الخارجي</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableExams"></table></div>
-
-                        <h3 style="margin-bottom: 10px; color: var(--info);"><i class="fa-solid fa-seedling"></i> إنجاز حصاد المدرسة</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableHarvest"></table></div>
-
-                        <h3 style="margin-bottom: 10px; color: var(--secondary);"><i class="fa-solid fa-book-open"></i> المذاكرة الذاتية</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableStudyOnly"></table></div>
-                        
-                        <h3 style="margin-bottom: 10px; color: var(--purple);"><i class="fa-solid fa-rotate-left"></i> المراجعة المستمرة</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableReview"></table></div>
-                        
-                        <h3 style="margin-bottom: 10px; color: var(--warning);"><i class="fa-solid fa-medal"></i> الأنشطة والإثراءات</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableActivities"></table></div>
+                <div id="repContainer" class="report-wrapper">
+                    <div style="text-align:left; margin-bottom:15px;">
+                        <button class="btn btn-dark" onclick="window.print()"><i class="fa-solid fa-print"></i> طباعة الوثيقة الرسمية</button>
                     </div>
-                    <button class="btn btn-dark" onclick="window.print()"><i class="fa-solid fa-print"></i> طباعة التقرير</button>
+                    
+                    <div class="premium-a4" id="printArea">
+                        <!-- Header -->
+                        <div class="rep-header">
+                            <div class="rep-header-text">
+                                المملكة العربية السعودية<br>
+                                الإدارة العامة للتعليم<br>
+                                مدرسة: <span id="repStSchoolHeader"></span>
+                            </div>
+                            <div class="rep-header-logo"><i class="fa-solid fa-medal"></i></div>
+                            <div class="rep-header-text" style="text-align:left;">
+                                نظام قيس التعليمي الشامل<br>
+                                وثيقة أداء وقياس معتمدة<br>
+                                تاريخ الإصدار: <span id="repIssueDate"></span>
+                            </div>
+                        </div>
+
+                        <div class="rep-title">كشف الأداء الأكاديمي والتحليل الشامل</div>
+                        <div class="rep-subtitle">Comprehensive Academic & Analytical Performance Report</div>
+
+                        <!-- Student Info Band -->
+                        <div class="rep-student-band">
+                            <div>
+                                <div class="rep-st-name" id="repStName">اسم الطالب</div>
+                                <div class="rep-st-meta" id="repStDetails">الصف - القاعة</div>
+                            </div>
+                            <div style="text-align: left;">
+                                <div style="font-size:0.85rem; color:#64748b; font-weight:bold;">المعدل العام للقياس</div>
+                                <div style="font-size:1.8rem; font-weight:800; color:var(--primary);" id="repAvgScore">0%</div>
+                            </div>
+                        </div>
+
+                        <div class="rep-grid-top">
+                            <!-- Smart AI Summary -->
+                            <div class="rep-ai-box">
+                                <div class="rep-ai-title"><i class="fa-solid fa-brain"></i> الخلاصة التحليلية الموجهة</div>
+                                <div class="rep-ai-text" id="repSmartSummary">
+                                    جاري التوليد...
+                                </div>
+                            </div>
+                            
+                            <!-- KPIs & Chart -->
+                            <div>
+                                <div class="rep-kpi-grid">
+                                    <div class="rep-kpi-card"><div class="rep-kpi-val" id="repStudyHours">0</div><div class="rep-kpi-lbl">ساعات الجهد الذاتي</div></div>
+                                    <div class="rep-kpi-card"><div class="rep-kpi-val" id="repAbsence" style="color:var(--danger);">0</div><div class="rep-kpi-lbl">أيام الغياب</div></div>
+                                    <div class="rep-kpi-card"><div class="rep-kpi-val" id="repXP" style="color:var(--warning);">0</div><div class="rep-kpi-lbl">نقاط الخبرة (XP)</div></div>
+                                    <div class="rep-kpi-card"><div class="rep-kpi-val" id="repExamsCount" style="color:var(--purple);">0</div><div class="rep-kpi-lbl">اختبارات مُنجزة</div></div>
+                                </div>
+                                <div style="width: 100%; max-width: 250px; margin: 0 auto;">
+                                    <canvas id="repRadarChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="page-break"></div>
+
+                        <!-- Detailed Tables -->
+                        <div class="rep-section-title"><i class="fa-solid fa-file-signature"></i> أولاً: السجل الأكاديمي والقياس الخارجي</div>
+                        <table class="rep-table" id="repTableExams"></table>
+
+                        <div class="rep-section-title"><i class="fa-solid fa-book-open-reader"></i> ثانياً: سجل الانضباط والمتابعة الذاتية (حصاد، مذاكرة، مراجعة)</div>
+                        <table class="rep-table" id="repTableStudyOnly"></table>
+                        
+                        <div class="rep-section-title"><i class="fa-solid fa-star"></i> ثالثاً: الأنشطة والمشاركات الإثرائية</div>
+                        <table class="rep-table" id="repTableActivities"></table>
+
+                        <!-- Signatures -->
+                        <div class="rep-signatures">
+                            <div class="rep-sig-box">
+                                <div class="rep-sig-title">توقيع ولي الأمر</div>
+                                <div class="rep-sig-line"></div>
+                            </div>
+                            <div class="rep-sig-box">
+                                <div class="rep-sig-title" style="margin-bottom: 20px;">اعتماد المنصة</div>
+                                <div style="font-size:0.8rem; color:#94a3b8; line-height: 1.5;">موثق إلكترونياً<br>نظام قيس للإدارة المتقدمة</div>
+                            </div>
+                            <div class="rep-sig-box">
+                                <div class="rep-sig-title">ختم وتوقيع الإدارة</div>
+                                <div class="rep-sig-line"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -689,43 +817,93 @@
                     </div>
                 </div>
 
-                <div id="stdRepContainer" style="display: none;">
-                    <div class="card report-card" id="stdPrintArea">
-                        <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px dashed var(--border);">
-                            <h1 style="color: var(--primary-dark); margin-bottom: 5px;">كشف الأداء الأكاديمي الشامل</h1>
-                            <h3 id="stdRepStName" style="color: var(--dark); font-size: 1.8rem; margin-bottom: 5px;"></h3>
-                            <h4 id="stdRepStSchool" style="color: var(--primary); margin-bottom: 10px;"></h4>
-                            <p id="stdRepStDetails" style="color: var(--text-light); font-size: 0.9rem;"></p>
-                        </div>
-
-                        <!-- Statistics -->
-                        <div class="grid-4" style="margin-bottom: 30px;">
-                            <div class="stat-box"><div style="font-size: 2rem;">🎯</div><div class="stat-number" id="stdRepAvgScore">0%</div><div>المتوسط العام للاختبارات</div></div>
-                            <div class="stat-box"><div style="font-size: 2rem;">⏱️</div><div class="stat-number" id="stdRepStudyHours">0</div><div>ساعات المذاكرة الموثقة</div></div>
-                            <div class="stat-box"><div style="font-size: 2rem;">⚠️</div><div class="stat-number" id="stdRepAbsence" style="color: var(--danger);">0</div><div>أيام الغياب</div></div>
-                            <div class="stat-box"><div style="font-size: 2rem;">🏆</div><div class="stat-number" id="stdRepXP" style="color: var(--warning);">0</div><div>نقاط الإنجاز (XP)</div></div>
-                        </div>
-
-                        <!-- Details Tables -->
-                        <h3 style="margin-bottom: 10px; color: var(--purple);"><i class="fa-solid fa-robot"></i> تقييمات مراجعة الوالد (AI)</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableAiExams"></table></div>
-
-                        <h3 style="margin-bottom: 10px; color: var(--primary);"><i class="fa-solid fa-file-signature"></i> سجل الاختبارات والقياس الخارجي</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableExams"></table></div>
-
-                        <h3 style="margin-bottom: 10px; color: var(--info);"><i class="fa-solid fa-seedling"></i> إنجاز حصاد المدرسة</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableHarvest"></table></div>
-
-                        <h3 style="margin-bottom: 10px; color: var(--secondary);"><i class="fa-solid fa-book-open"></i> المذاكرة الذاتية</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableStudyOnly"></table></div>
-                        
-                        <h3 style="margin-bottom: 10px; color: var(--purple);"><i class="fa-solid fa-rotate-left"></i> المراجعة المستمرة</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableReview"></table></div>
-                        
-                        <h3 style="margin-bottom: 10px; color: var(--warning);"><i class="fa-solid fa-medal"></i> الأنشطة والإثراءات</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableActivities"></table></div>
+                <div id="stdRepContainer" class="report-wrapper">
+                    <div style="text-align:left; margin-bottom:15px;">
+                        <button class="btn btn-dark" onclick="window.print()"><i class="fa-solid fa-print"></i> طباعة الوثيقة الرسمية</button>
                     </div>
-                    <button class="btn btn-dark" onclick="window.print()"><i class="fa-solid fa-print"></i> طباعة التقرير</button>
+
+                    <div class="premium-a4" id="stdPrintArea">
+                        <!-- Header -->
+                        <div class="rep-header">
+                            <div class="rep-header-text">
+                                المملكة العربية السعودية<br>
+                                الإدارة العامة للتعليم<br>
+                                مدرسة: <span id="stdRepStSchoolHeader"></span>
+                            </div>
+                            <div class="rep-header-logo"><i class="fa-solid fa-medal"></i></div>
+                            <div class="rep-header-text" style="text-align:left;">
+                                نظام قيس التعليمي الشامل<br>
+                                وثيقة أداء وقياس معتمدة<br>
+                                تاريخ الإصدار: <span id="stdRepIssueDate"></span>
+                            </div>
+                        </div>
+
+                        <div class="rep-title">كشف الأداء الأكاديمي والتحليل الشامل</div>
+                        <div class="rep-subtitle">Comprehensive Academic & Analytical Performance Report</div>
+
+                        <!-- Student Info Band -->
+                        <div class="rep-student-band">
+                            <div>
+                                <div class="rep-st-name" id="stdRepStName">اسم الطالب</div>
+                                <div class="rep-st-meta" id="stdRepStDetails">الصف - القاعة</div>
+                            </div>
+                            <div style="text-align: left;">
+                                <div style="font-size:0.85rem; color:#64748b; font-weight:bold;">المعدل العام للقياس</div>
+                                <div style="font-size:1.8rem; font-weight:800; color:var(--primary);" id="stdRepAvgScore">0%</div>
+                            </div>
+                        </div>
+
+                        <div class="rep-grid-top">
+                            <!-- Smart AI Summary -->
+                            <div class="rep-ai-box">
+                                <div class="rep-ai-title"><i class="fa-solid fa-brain"></i> الخلاصة التحليلية الموجهة</div>
+                                <div class="rep-ai-text" id="stdRepSmartSummary">
+                                    جاري التوليد...
+                                </div>
+                            </div>
+                            
+                            <!-- KPIs & Chart -->
+                            <div>
+                                <div class="rep-kpi-grid">
+                                    <div class="rep-kpi-card"><div class="rep-kpi-val" id="stdRepStudyHours">0</div><div class="rep-kpi-lbl">ساعات الجهد الذاتي</div></div>
+                                    <div class="rep-kpi-card"><div class="rep-kpi-val" id="stdRepAbsence" style="color:var(--danger);">0</div><div class="rep-kpi-lbl">أيام الغياب</div></div>
+                                    <div class="rep-kpi-card"><div class="rep-kpi-val" id="stdRepXP" style="color:var(--warning);">0</div><div class="rep-kpi-lbl">نقاط الخبرة (XP)</div></div>
+                                    <div class="rep-kpi-card"><div class="rep-kpi-val" id="stdRepExamsCount" style="color:var(--purple);">0</div><div class="rep-kpi-lbl">اختبارات مُنجزة</div></div>
+                                </div>
+                                <div style="width: 100%; max-width: 250px; margin: 0 auto;">
+                                    <canvas id="stdRepRadarChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="page-break"></div>
+
+                        <!-- Detailed Tables -->
+                        <div class="rep-section-title"><i class="fa-solid fa-file-signature"></i> أولاً: السجل الأكاديمي والقياس الخارجي</div>
+                        <table class="rep-table" id="stdRepTableExams"></table>
+
+                        <div class="rep-section-title"><i class="fa-solid fa-book-open-reader"></i> ثانياً: سجل الانضباط والمتابعة الذاتية (حصاد، مذاكرة، مراجعة)</div>
+                        <table class="rep-table" id="stdRepTableStudyOnly"></table>
+                        
+                        <div class="rep-section-title"><i class="fa-solid fa-star"></i> ثالثاً: الأنشطة والمشاركات الإثرائية</div>
+                        <table class="rep-table" id="stdRepTableActivities"></table>
+
+                        <!-- Signatures -->
+                        <div class="rep-signatures">
+                            <div class="rep-sig-box">
+                                <div class="rep-sig-title">توقيع الطالب/ـة</div>
+                                <div class="rep-sig-line"></div>
+                            </div>
+                            <div class="rep-sig-box">
+                                <div class="rep-sig-title" style="margin-bottom: 20px;">اعتماد المنصة</div>
+                                <div style="font-size:0.8rem; color:#94a3b8; line-height: 1.5;">موثق إلكترونياً<br>نظام قيس للإدارة المتقدمة</div>
+                            </div>
+                            <div class="rep-sig-box">
+                                <div class="rep-sig-title">توقيع ولي الأمر</div>
+                                <div class="rep-sig-line"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -769,6 +947,18 @@
                 <div class="form-group"><label>الدرجة النهائية الكلية</label><input type="number" id="gradeMax" value="10"></div>
             </div>
             <button class="btn btn-purple" style="width: 100%;" onclick="submitAiExamGrade()"><i class="fa-solid fa-award"></i> اعتماد التقييم النهائي وتوثيقه</button>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Confirm Modal -->
+<div id="customConfirmModal" class="modal-overlay" style="z-index: 9999;">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <h3 style="margin-bottom: 15px; color: var(--dark); font-size: 1.5rem;"><i class="fa-solid fa-circle-exclamation" style="color: var(--warning);"></i> تأكيد</h3>
+        <p id="customConfirmMsg" style="margin-bottom: 25px; color: var(--text-light);"></p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="customConfirmYes" class="btn btn-danger" style="flex: 1;">نعم، تأكيد</button>
+            <button id="customConfirmNo" class="btn btn-outline" style="flex: 1;">إلغاء</button>
         </div>
     </div>
 </div>
@@ -1921,6 +2111,9 @@
         }
     };
 
+    // Global chart instances to destroy them before re-rendering
+    window.radarCharts = { rep: null, stdRep: null };
+
     window.fillReportData = function(sId, from, to, pfx) {
         if(!sId) { $(pfx+'Container').style.display='none'; return; }
         
@@ -1928,9 +2121,11 @@
         let st = db.students.find(s=>s.id === sId);
         let sch = db.schools.find(x=>x.id === st.schoolId);
         
+        $(pfx+'IssueDate').innerText = new Date().toLocaleDateString('ar-SA');
+        $(pfx+'StSchoolHeader').innerText = sch ? sch.name : 'مدرسة غير محددة';
+
         $(pfx+'StName').innerText = st.name;
-        $(pfx+'StSchool').innerText = sch ? sch.name : 'مدرسة غير محددة';
-        $(pfx+'StDetails').innerText = `مدير المدرسة: ${sch?sch.principal:'-'} | الصف: ${st.grade} | القاعة: ${st.section} | مسار التقرير: شامل`;
+        $(pfx+'StDetails').innerText = `${st.grade} - قاعة ${st.section}`;
         
         let dFilter = (item) => {
             if(item.sId !== sId) return false;
@@ -1940,40 +2135,146 @@
             return true;
         };
 
+        // --- Data Calculations ---
         let myExams = db.exams.filter(dFilter);
-        let avg = myExams.length ? (myExams.reduce((sum, ex) => sum + (ex.score/ex.max), 0) / myExams.length) * 100 : 0;
+        let myAiExams = db.aiExams.filter(dFilter).filter(e => e.status === 'graded');
+        
+        // Combine all scored exams for GPA and Chart
+        let allScoredExams = [
+            ...myExams,
+            ...myAiExams.map(e => ({ subId: e.subId, score: e.score, max: e.maxScore, typeId: 'مراجعة AI' }))
+        ];
+
+        let avg = allScoredExams.length ? (allScoredExams.reduce((sum, ex) => sum + (ex.score/ex.max), 0) / allScoredExams.length) * 100 : 0;
         $(pfx+'AvgScore').innerText = avg.toFixed(1) + '%';
         
         let mySecs = db.sessionLogs.filter(dFilter).reduce((sum, log) => sum + log.durationSeconds, 0);
-        $(pfx+'StudyHours').innerText = (mySecs / 3600).toFixed(1);
+        let hours = (mySecs / 3600).toFixed(1);
+        $(pfx+'StudyHours').innerText = hours;
         
-        $(pfx+'Absence').innerText = db.attendance.filter(dFilter).length;
-        $(pfx+'XP').innerText = calcStudentXP(sId);
-
-        let getSub = id => { let s = db.subjects.find(x=>x.id===id); return s?s.name:'-';};
+        let absenceCount = db.attendance.filter(dFilter).filter(a => a.status.includes('غياب')).length;
+        $(pfx+'Absence').innerText = absenceCount;
         
-        $(pfx+'TableExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الاختبار</th><th>الدرجة</th></tr></thead>` + 
-            (myExams.length ? myExams.map(e => `<tr><td>${e.date}</td><td>${getSub(e.subId)}</td><td>${e.typeId} (${e.sourceId})</td><td style="font-weight:bold">${e.score} / ${e.max}</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
+        let xpTotal = calcStudentXP(sId);
+        $(pfx+'XP').innerText = xpTotal;
+        $(pfx+'ExamsCount').innerText = allScoredExams.length;
 
-        let myHarv = db.harvest.filter(dFilter);
-        $(pfx+'TableHarvest').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الدرس/الصفحات</th></tr></thead>` + 
-            (myHarv.length ? myHarv.map(h => `<tr><td>${h.isoDate || h.date}</td><td>${getSub(h.subId)}</td><td>حصة ${h.period} - ${h.lesson} (ص ${h.start}-${h.end})</td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>`);
-            
-        let myStudy = db.study.filter(dFilter);
-        $(pfx+'TableStudyOnly').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الصفحات</th></tr></thead>` + 
-            (myStudy.length ? myStudy.map(h => `<tr><td>${h.isoDate || h.date}</td><td>${getSub(h.subId)}</td><td>(ص ${h.start}-${h.end})</td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>`);
-            
-        let myRev = db.review.filter(dFilter);
-        $(pfx+'TableReview').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الصفحات</th></tr></thead>` + 
-            (myRev.length ? myRev.map(h => `<tr><td>${h.isoDate || h.date}</td><td>${getSub(h.subId)}</td><td>(ص ${h.start}-${h.end})</td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>`);
+        // --- Smart Summary Generation ---
+        let summaryHtml = '';
+        if (avg >= 95) {
+            summaryHtml += `يُظهر الطالب <b>${st.name}</b> تفوقاً أكاديمياً استثنائياً، حيث يعكس معدله التراكمي المرتفع جداً (${avg.toFixed(1)}%) التزاماً عالياً وحرصاً شديداً على التفوق وإتقان المهارات. `;
+        } else if (avg >= 85) {
+            summaryHtml += `يتمتع الطالب <b>${st.name}</b> بمستوى أكاديمي ممتاز بمعدل (${avg.toFixed(1)}%)، مع وجود مساحة جيدة للتحسن الطفيف للوصول للامتياز الكامل. `;
+        } else if (avg >= 70) {
+            summaryHtml += `أداء الطالب <b>${st.name}</b> يعتبر متوسظاً بمعدل (${avg.toFixed(1)}%). نوصي بالتركيز بشكل أكبر على المواد التي شهدت تراجعاً في التقييمات الأخيرة. `;
+        } else if (allScoredExams.length > 0) {
+            summaryHtml += `يحتاج الطالب <b>${st.name}</b> إلى عناية أكاديمية مكثفة ومضاعفة الجهد للارتقاء بمعدله الحالي (${avg.toFixed(1)}%). `;
+        } else {
+            summaryHtml += `لم يتم رصد درجات قياس كافية لتقييم المستوى الأكاديمي الشامل في هذه الفترة. `;
+        }
+
+        if (hours > 15) {
+            summaryHtml += `<br><br>كما يعكس سجل النظام تفانياً وانضباطاً ذاتياً عالياً من خلال قضاء <b>${hours} ساعة</b> موثقة في الاستذكار المستمر. `;
+        } else if (hours > 5) {
+            summaryHtml += `<br><br>تم رصد <b>${hours} ساعة</b> تفاعل ذاتي عبر النظام، وهي بداية جيدة تتطلب الاستمرارية. `;
+        }
+
+        if (absenceCount === 0) {
+            summaryHtml += `<br><br><span style="color:var(--secondary); font-weight:bold;"><i class="fa-solid fa-check-circle"></i> يتميز الطالب بالانضباط التام في الحضور وعدم تسجيل أي حالات غياب.</span>`;
+        } else if (absenceCount <= 3) {
+            summaryHtml += `<br><br><span style="color:var(--text-light);"><i class="fa-solid fa-info-circle"></i> سجلت المنصة (${absenceCount}) أيام غياب مبررة.</span>`;
+        } else {
+            summaryHtml += `<br><br><span style="color:var(--danger); font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> تنبيه إداري: لوحظ ارتفاع مقلق في معدل الغياب (${absenceCount} أيام)، مما يؤثر بشكل مباشر على جودة التحصيل.</span>`;
+        }
+
+        $(pfx+'SmartSummary').innerHTML = summaryHtml;
+
+        // --- Chart.js Radar Generation ---
+        let getSub = id => { let s = db.subjects.find(x=>x.id===id); return s?s.name:'عام';};
+        
+        let subjectAverages = {};
+        allScoredExams.forEach(ex => {
+            let subName = getSub(ex.subId);
+            if(!subjectAverages[subName]) subjectAverages[subName] = { totalPct: 0, count: 0 };
+            subjectAverages[subName].totalPct += (ex.score / ex.max) * 100;
+            subjectAverages[subName].count++;
+        });
+
+        let chartLabels = [];
+        let chartData = [];
+        for (let sub in subjectAverages) {
+            chartLabels.push(sub);
+            chartData.push(Math.round(subjectAverages[sub].totalPct / subjectAverages[sub].count));
+        }
+
+        let ctx = $(pfx+'RadarChart').getContext('2d');
+        if(window.radarCharts[pfx]) window.radarCharts[pfx].destroy();
+
+        if (chartLabels.length > 0) {
+            window.radarCharts[pfx] = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'متوسط إتقان المادة (%)',
+                        data: chartData,
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderColor: 'rgba(37, 99, 235, 0.8)',
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: 'rgba(37, 99, 235, 1)',
+                        pointHoverBackgroundColor: '#ffffff',
+                        pointHoverBorderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        r: { 
+                            angleLines: { color: 'rgba(0, 0, 0, 0.05)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            pointLabels: { font: { family: 'Tajawal', size: 12, weight: 'bold' }, color: '#334155' },
+                            ticks: { backdropColor: 'transparent', min: 0, max: 100, stepSize: 25, display: false }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            $(pfx+'RadarChart').style.display = 'block';
+        } else {
+            $(pfx+'RadarChart').style.display = 'none';
+        }
+
+        // --- Official Tables Filling ---
+        
+        let combinedExamsTable = '';
+        if (myExams.length === 0 && myAiExams.length === 0) {
+            combinedExamsTable = `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">لا يوجد قياس أو اختبارات مرصودة خلال هذه الفترة</td></tr>`;
+        } else {
+            myExams.forEach(e => {
+                combinedExamsTable += `<tr><td>${e.date}</td><td style="font-weight:bold;">${getSub(e.subId)}</td><td>${e.typeId} <span style="color:#64748b; font-size:0.8rem;">(${e.sourceId})</span></td><td style="font-weight:bold; color:var(--primary);">${e.score} / ${e.max}</td></tr>`;
+            });
+            myAiExams.forEach(e => {
+                combinedExamsTable += `<tr><td>${e.date}</td><td style="font-weight:bold;">${getSub(e.subId)}</td><td>${e.title} <span style="color:var(--purple); font-size:0.8rem;">(مراجعة ذكية AI)</span></td><td style="font-weight:bold; color:var(--purple);">${e.score} / ${e.maxScore}</td></tr>`;
+            });
+        }
+        $(pfx+'TableExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الاختبار / مقياس الأداء</th><th>الدرجة</th></tr></thead><tbody>${combinedExamsTable}</tbody>`;
+
+        let myHarv = db.harvest.filter(dFilter).map(x => ({...x, logType: 'حصاد دوري', color: '#2563eb'}));
+        let myStudy = db.study.filter(dFilter).map(x => ({...x, logType: 'مذاكرة ذاتية', color: '#10b981'}));
+        let myRev = db.review.filter(dFilter).map(x => ({...x, logType: 'مراجعة', color: '#8b5cf6'}));
+        
+        let allStudyLogs = [...myHarv, ...myStudy, ...myRev].sort((a, b) => new Date(b.isoDate || b.date) - new Date(a.isoDate || a.date));
+
+        $(pfx+'TableStudyOnly').innerHTML = `<thead><tr><th>التاريخ</th><th>تصنيف النشاط</th><th>المادة</th><th>نطاق المتابعة</th></tr></thead><tbody>` + 
+            (allStudyLogs.length ? allStudyLogs.map(h => {
+                let details = h.logType === 'حصاد دوري' ? `حصة ${h.period} - ${h.lesson} (ص ${h.start} إلى ${h.end})` : `تغطية من ص ${h.start} إلى ص ${h.end}`;
+                return `<tr><td>${h.isoDate || h.date}</td><td style="color:${h.color}; font-weight:bold;">${h.logType}</td><td style="font-weight:bold;">${getSub(h.subId)}</td><td>${details}</td></tr>`;
+            }).join('') : `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">لا توجد سجلات متابعة مسجلة</td></tr>`) + `</tbody>`;
             
         let myAct = db.activities.filter(dFilter);
-        $(pfx+'TableActivities').innerHTML = `<thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th></tr></thead>` + 
-            (myAct.length ? myAct.map(a => `<tr><td>${a.date}</td><td><span class="badge badge-orange">${a.type}</span></td><td>${a.title}</td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>`);
-
-        let myAiExams = db.aiExams.filter(dFilter).filter(e => e.status === 'graded');
-        $(pfx+'TableAiExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>وصف الاختبار</th><th>الدرجة</th></tr></thead>` + 
-            (myAiExams.length ? myAiExams.map(e => `<tr><td>${e.date}</td><td>${getSub(e.subId)}</td><td>${e.title}</td><td style="font-weight:bold; color:var(--purple);">${e.score} / ${e.maxScore}</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
+        $(pfx+'TableActivities').innerHTML = `<thead><tr><th>التاريخ</th><th>تصنيف الإثراء</th><th>المادة المرجعية</th><th>وصف الإنجاز التفصيلي</th></tr></thead><tbody>` + 
+            (myAct.length ? myAct.map(a => `<tr><td>${a.date}</td><td><span style="background:#fef3c7; color:#b45309; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:0.8rem;">${a.type}</span></td><td style="font-weight:bold;">${getSub(a.subId)}</td><td>${a.title}</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">لا توجد مشاركات إثرائية مسجلة</td></tr>`) + `</tbody>`;
     };
 
     window.generateComprehensiveReport = function() {
