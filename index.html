@@ -203,6 +203,7 @@
             <a class="nav-link" id="navStdStudy" onclick="nav('std-study', this)"><i class="fa-solid fa-book-open"></i> تسجيل المذاكرة</a>
             <a class="nav-link" id="navStdActivities" onclick="nav('std-activities', this)"><i class="fa-solid fa-medal"></i> الأنشطة والإثراءات</a>
             <a class="nav-link" id="navStdAiExams" onclick="nav('std-aiexams', this)" style="color:#c084fc; display:none;"><i class="fa-solid fa-file-circle-question"></i> اختبارات الوالد</a>
+            <a class="nav-link" id="navStdReports" onclick="nav('std-reports', this)" style="display:none;"><i class="fa-solid fa-file-invoice"></i> تقريري الشامل</a>
         </div>
 
         <div class="sidebar-footer">
@@ -340,6 +341,13 @@
                             </div>
                             <label class="switch"><input type="checkbox" id="perm_canAiExams"><span class="slider"></span></label>
                         </div>
+                        <div class="permission-row">
+                            <div>
+                                <b>إظهار شاشة (التقرير الشامل)</b>
+                                <div style="font-size:0.8rem; color:var(--text-light);">السماح للطالب بمشاهدة وطباعة تقرير أدائه الشامل</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="perm_canReport"><span class="slider"></span></label>
+                        </div>
                         <div style="padding: 15px; background: #f8fafc; border-top: 1px solid var(--border);">
                             <button class="btn btn-primary" style="width:100%;" onclick="saveStudentPermissions()"><i class="fa-solid fa-save"></i> حفظ الصلاحيات</button>
                         </div>
@@ -476,7 +484,7 @@
                     </div>
                 </div>
 
-                <div id="reportContainer" style="display: none;">
+                <div id="repContainer" style="display: none;">
                     <div class="card report-card" id="printArea">
                         <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px dashed var(--border);">
                             <h1 style="color: var(--primary-dark); margin-bottom: 5px;">كشف الأداء الأكاديمي الشامل</h1>
@@ -500,8 +508,14 @@
                         <h3 style="margin-bottom: 10px; color: var(--primary);"><i class="fa-solid fa-file-signature"></i> سجل الاختبارات والقياس الخارجي</h3>
                         <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableExams"></table></div>
 
-                        <h3 style="margin-bottom: 10px; color: var(--secondary);"><i class="fa-solid fa-book-open"></i> إنجاز المذاكرة والمراجعة (الصفحات)</h3>
-                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableStudy"></table></div>
+                        <h3 style="margin-bottom: 10px; color: var(--info);"><i class="fa-solid fa-seedling"></i> إنجاز حصاد المدرسة</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableHarvest"></table></div>
+
+                        <h3 style="margin-bottom: 10px; color: var(--secondary);"><i class="fa-solid fa-book-open"></i> المذاكرة الذاتية</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableStudyOnly"></table></div>
+                        
+                        <h3 style="margin-bottom: 10px; color: var(--purple);"><i class="fa-solid fa-rotate-left"></i> المراجعة المستمرة</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableReview"></table></div>
                         
                         <h3 style="margin-bottom: 10px; color: var(--warning);"><i class="fa-solid fa-medal"></i> الأنشطة والإثراءات</h3>
                         <div class="table-responsive" style="margin-bottom: 25px;"><table id="repTableActivities"></table></div>
@@ -665,18 +679,56 @@
                 </div>
             </div>
 
-        </div>
-    </div>
-</div>
+            <!-- Student Reports (NEW) -->
+            <div id="std-reports" class="section-view">
+                <h2 class="section-title"><i class="fa-solid fa-file-invoice"></i> تقريري الشامل</h2>
+                <div class="card" style="background: #f0fdf4; border-color: #bbf7d0;">
+                    <div class="grid-2">
+                        <div class="form-group"><label>تصفية من تاريخ:</label><input type="date" id="stdRepFrom" onchange="generateStudentReport()"></div>
+                        <div class="form-group"><label>إلى تاريخ:</label><input type="date" id="stdRepTo" onchange="generateStudentReport()"></div>
+                    </div>
+                </div>
 
-<!-- Custom Confirm Modal -->
-<div id="customConfirmModal" class="modal-overlay" style="z-index: 9999;">
-    <div class="modal-content" style="max-width: 400px; text-align: center;">
-        <h3 style="margin-bottom: 15px; color: var(--dark); font-size: 1.5rem;"><i class="fa-solid fa-circle-exclamation" style="color: var(--warning);"></i> تأكيد</h3>
-        <p id="customConfirmMsg" style="margin-bottom: 25px; color: var(--text-light);"></p>
-        <div style="display: flex; gap: 10px; justify-content: center;">
-            <button id="customConfirmYes" class="btn btn-danger" style="flex: 1;">نعم، تأكيد</button>
-            <button id="customConfirmNo" class="btn btn-outline" style="flex: 1;">إلغاء</button>
+                <div id="stdRepContainer" style="display: none;">
+                    <div class="card report-card" id="stdPrintArea">
+                        <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px dashed var(--border);">
+                            <h1 style="color: var(--primary-dark); margin-bottom: 5px;">كشف الأداء الأكاديمي الشامل</h1>
+                            <h3 id="stdRepStName" style="color: var(--dark); font-size: 1.8rem; margin-bottom: 5px;"></h3>
+                            <h4 id="stdRepStSchool" style="color: var(--primary); margin-bottom: 10px;"></h4>
+                            <p id="stdRepStDetails" style="color: var(--text-light); font-size: 0.9rem;"></p>
+                        </div>
+
+                        <!-- Statistics -->
+                        <div class="grid-4" style="margin-bottom: 30px;">
+                            <div class="stat-box"><div style="font-size: 2rem;">🎯</div><div class="stat-number" id="stdRepAvgScore">0%</div><div>المتوسط العام للاختبارات</div></div>
+                            <div class="stat-box"><div style="font-size: 2rem;">⏱️</div><div class="stat-number" id="stdRepStudyHours">0</div><div>ساعات المذاكرة الموثقة</div></div>
+                            <div class="stat-box"><div style="font-size: 2rem;">⚠️</div><div class="stat-number" id="stdRepAbsence" style="color: var(--danger);">0</div><div>أيام الغياب</div></div>
+                            <div class="stat-box"><div style="font-size: 2rem;">🏆</div><div class="stat-number" id="stdRepXP" style="color: var(--warning);">0</div><div>نقاط الإنجاز (XP)</div></div>
+                        </div>
+
+                        <!-- Details Tables -->
+                        <h3 style="margin-bottom: 10px; color: var(--purple);"><i class="fa-solid fa-robot"></i> تقييمات مراجعة الوالد (AI)</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableAiExams"></table></div>
+
+                        <h3 style="margin-bottom: 10px; color: var(--primary);"><i class="fa-solid fa-file-signature"></i> سجل الاختبارات والقياس الخارجي</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableExams"></table></div>
+
+                        <h3 style="margin-bottom: 10px; color: var(--info);"><i class="fa-solid fa-seedling"></i> إنجاز حصاد المدرسة</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableHarvest"></table></div>
+
+                        <h3 style="margin-bottom: 10px; color: var(--secondary);"><i class="fa-solid fa-book-open"></i> المذاكرة الذاتية</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableStudyOnly"></table></div>
+                        
+                        <h3 style="margin-bottom: 10px; color: var(--purple);"><i class="fa-solid fa-rotate-left"></i> المراجعة المستمرة</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableReview"></table></div>
+                        
+                        <h3 style="margin-bottom: 10px; color: var(--warning);"><i class="fa-solid fa-medal"></i> الأنشطة والإثراءات</h3>
+                        <div class="table-responsive" style="margin-bottom: 25px;"><table id="stdRepTableActivities"></table></div>
+                    </div>
+                    <button class="btn btn-dark" onclick="window.print()"><i class="fa-solid fa-print"></i> طباعة التقرير</button>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
@@ -864,9 +916,12 @@
 
                 db.students.forEach(st => { 
                     if(!st.permissions) { 
-                        st.permissions = { canStudy: true, canActivity: true, canAiExams: true }; 
+                        st.permissions = { canStudy: true, canActivity: true, canAiExams: true, canReport: true }; 
                         needsSave = true;
-                    } 
+                    } else if (st.permissions.canReport === undefined) {
+                        st.permissions.canReport = true;
+                        needsSave = true;
+                    }
                 });
 
                 if(!db.settings) { db.settings = DEFAULT_DB.settings; needsSave = true; }
@@ -912,6 +967,7 @@
                 $('navStdStudy').style.display = p.canStudy ? 'flex' : 'none';
                 $('navStdActivities').style.display = p.canActivity ? 'flex' : 'none';
                 $('navStdAiExams').style.display = p.canAiExams ? 'flex' : 'none';
+                $('navStdReports').style.display = p.canReport !== false ? 'flex' : 'none';
 
                 $('loginScreen').style.display = 'none';
                 $('app').style.display = 'flex';
@@ -921,7 +977,7 @@
                 $('topWelcome').innerText = `أهلاً بك يا بطل: ${student.name} 🎓`;
                 if(schName) $('stdSchoolNameDisplay').innerText = `مدرستك: ${schName} | دعنا نبدأ جلسة التركيز.`;
                 
-                let firstAvailableNav = p.canStudy ? 'std-dashboard' : (p.canActivity ? 'std-activities' : 'std-aiexams');
+                let firstAvailableNav = p.canStudy ? 'std-dashboard' : (p.canActivity ? 'std-activities' : (p.canAiExams ? 'std-aiexams' : (p.canReport !== false ? 'std-reports' : 'std-dashboard')));
                 nav(firstAvailableNav, document.querySelector('#navStudent .nav-link'));
                 checkExistingSession();
             } else { showToast('بيانات الدخول غير صحيحة', 'bg-error'); }
@@ -951,6 +1007,7 @@
             populateStudentDropdowns();
             renderStudentTables();
             renderStudentAiExams();
+            if($('std-reports').classList.contains('active')) generateStudentReport();
         }
     }
 
@@ -1011,6 +1068,7 @@
             $('perm_canStudy').checked = st.permissions.canStudy;
             $('perm_canActivity').checked = st.permissions.canActivity;
             $('perm_canAiExams').checked = st.permissions.canAiExams;
+            $('perm_canReport').checked = st.permissions.canReport !== false;
             $('permissionsList').style.display = 'block';
         }
     };
@@ -1022,7 +1080,8 @@
             st.permissions = {
                 canStudy: $('perm_canStudy').checked,
                 canActivity: $('perm_canActivity').checked,
-                canAiExams: $('perm_canAiExams').checked
+                canAiExams: $('perm_canAiExams').checked,
+                canReport: $('perm_canReport').checked
             };
             saveDb(); showToast('تم تحديث صلاحيات الطالب بنجاح', 'bg-success');
         }
@@ -1755,7 +1814,7 @@
 
     window.addStudent = function() {
         if(!v('stName') || !v('stSchool') || !v('stUser') || !v('stPass')) return showToast('أكمل البيانات والمدرسة', 'bg-error');
-        let defaultPerms = { canStudy: true, canActivity: true, canAiExams: true };
+        let defaultPerms = { canStudy: true, canActivity: true, canAiExams: true, canReport: true };
         db.students.push({ id: generateId(), name: v('stName'), schoolId: v('stSchool'), grade: v('stGrade'), section: v('stSection'), user: v('stUser'), pass: v('stPass'), permissions: defaultPerms });
         saveDb(); $('stName').value='';$('stUser').value='';$('stPass').value='';
         populateAdminDropdowns();
@@ -1862,62 +1921,67 @@
         }
     };
 
-    window.generateComprehensiveReport = function() {
-        let sId = v('repStudent'); if(!sId) { $('reportContainer').style.display='none'; return; }
+    window.fillReportData = function(sId, from, to, pfx) {
+        if(!sId) { $(pfx+'Container').style.display='none'; return; }
         
-        $('reportContainer').style.display = 'block';
+        $(pfx+'Container').style.display = 'block';
         let st = db.students.find(s=>s.id === sId);
         let sch = db.schools.find(x=>x.id === st.schoolId);
         
-        $('repStName').innerText = st.name;
-        $('repStSchool').innerText = sch ? sch.name : 'مدرسة غير محددة';
-        $('repStDetails').innerText = `مدير المدرسة: ${sch?sch.principal:'-'} | الصف: ${st.grade} | القاعة: ${st.section} | مسار التقرير: شامل`;
+        $(pfx+'StName').innerText = st.name;
+        $(pfx+'StSchool').innerText = sch ? sch.name : 'مدرسة غير محددة';
+        $(pfx+'StDetails').innerText = `مدير المدرسة: ${sch?sch.principal:'-'} | الصف: ${st.grade} | القاعة: ${st.section} | مسار التقرير: شامل`;
         
-        let from = v('repFrom'), to = v('repTo');
         let dFilter = (item) => {
             if(item.sId !== sId) return false;
-            let d = item.isoDate; if(!d) return true; // fallback
+            let d = item.isoDate; if(!d) return true; 
             if(from && d < from) return false;
             if(to && d > to) return false;
             return true;
         };
 
-        // Stats calc
         let myExams = db.exams.filter(dFilter);
         let avg = myExams.length ? (myExams.reduce((sum, ex) => sum + (ex.score/ex.max), 0) / myExams.length) * 100 : 0;
-        $('repAvgScore').innerText = avg.toFixed(1) + '%';
+        $(pfx+'AvgScore').innerText = avg.toFixed(1) + '%';
         
         let mySecs = db.sessionLogs.filter(dFilter).reduce((sum, log) => sum + log.durationSeconds, 0);
-        $('repStudyHours').innerText = (mySecs / 3600).toFixed(1);
+        $(pfx+'StudyHours').innerText = (mySecs / 3600).toFixed(1);
         
-        $('repAbsence').innerText = db.attendance.filter(dFilter).length;
-        $('repXP').innerText = calcStudentXP(sId);
+        $(pfx+'Absence').innerText = db.attendance.filter(dFilter).length;
+        $(pfx+'XP').innerText = calcStudentXP(sId);
 
-        // Tables
         let getSub = id => { let s = db.subjects.find(x=>x.id===id); return s?s.name:'-';};
         
-        $('repTableExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الاختبار</th><th>الدرجة</th></tr></thead>` + 
+        $(pfx+'TableExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الاختبار</th><th>الدرجة</th></tr></thead>` + 
             (myExams.length ? myExams.map(e => `<tr><td>${e.date}</td><td>${getSub(e.subId)}</td><td>${e.typeId} (${e.sourceId})</td><td style="font-weight:bold">${e.score} / ${e.max}</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
 
-        let myHarv = db.harvest.filter(dFilter).map(x => ({...x, logType: 'حصاد', badge: 'badge-blue'}));
-        let myStudy = db.study.filter(dFilter).map(x => ({...x, logType: 'مذاكرة', badge: 'badge-green'}));
-        let myRev = db.review.filter(dFilter).map(x => ({...x, logType: 'مراجعة', badge: 'badge-purple'}));
-        
-        let allStudyLogs = [...myHarv, ...myStudy, ...myRev].sort((a, b) => new Date(b.isoDate || b.date) - new Date(a.isoDate || a.date));
-
-        $('repTableStudy').innerHTML = `<thead><tr><th>التاريخ</th><th>النوع</th><th>المادة</th><th>الدرس/الصفحات</th></tr></thead>` + 
-            (allStudyLogs.length ? allStudyLogs.map(h => {
-                let details = h.logType === 'حصاد' ? `حصة ${h.period} - ${h.lesson} (ص ${h.start}-${h.end})` : `(ص ${h.start}-${h.end})`;
-                return `<tr><td>${h.isoDate || h.date}</td><td><span class="badge ${h.badge}">${h.logType}</span></td><td>${getSub(h.subId)}</td><td>${details}</td></tr>`;
-            }).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
+        let myHarv = db.harvest.filter(dFilter);
+        $(pfx+'TableHarvest').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الدرس/الصفحات</th></tr></thead>` + 
+            (myHarv.length ? myHarv.map(h => `<tr><td>${h.isoDate || h.date}</td><td>${getSub(h.subId)}</td><td>حصة ${h.period} - ${h.lesson} (ص ${h.start}-${h.end})</td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>`);
+            
+        let myStudy = db.study.filter(dFilter);
+        $(pfx+'TableStudyOnly').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الصفحات</th></tr></thead>` + 
+            (myStudy.length ? myStudy.map(h => `<tr><td>${h.isoDate || h.date}</td><td>${getSub(h.subId)}</td><td>(ص ${h.start}-${h.end})</td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>`);
+            
+        let myRev = db.review.filter(dFilter);
+        $(pfx+'TableReview').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الصفحات</th></tr></thead>` + 
+            (myRev.length ? myRev.map(h => `<tr><td>${h.isoDate || h.date}</td><td>${getSub(h.subId)}</td><td>(ص ${h.start}-${h.end})</td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>`);
             
         let myAct = db.activities.filter(dFilter);
-        $('repTableActivities').innerHTML = `<thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th></tr></thead>` + 
+        $(pfx+'TableActivities').innerHTML = `<thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th></tr></thead>` + 
             (myAct.length ? myAct.map(a => `<tr><td>${a.date}</td><td><span class="badge badge-orange">${a.type}</span></td><td>${a.title}</td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center">لا يوجد</td></tr>`);
 
         let myAiExams = db.aiExams.filter(dFilter).filter(e => e.status === 'graded');
-        $('repTableAiExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>وصف الاختبار</th><th>الدرجة</th></tr></thead>` + 
+        $(pfx+'TableAiExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>وصف الاختبار</th><th>الدرجة</th></tr></thead>` + 
             (myAiExams.length ? myAiExams.map(e => `<tr><td>${e.date}</td><td>${getSub(e.subId)}</td><td>${e.title}</td><td style="font-weight:bold; color:var(--purple);">${e.score} / ${e.maxScore}</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center">لا يوجد</td></tr>`);
+    };
+
+    window.generateComprehensiveReport = function() {
+        fillReportData(v('repStudent'), v('repFrom'), v('repTo'), 'rep');
+    };
+    
+    window.generateStudentReport = function() {
+        fillReportData(window.currentUser.id, v('stdRepFrom'), v('stdRepTo'), 'stdRep');
     };
 
 </script>
