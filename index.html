@@ -145,8 +145,8 @@
         .pulse-red { width: 10px; height: 10px; background: #ef4444; border-radius: 50%; animation: pulse 1.5s infinite; }
 
         /* ==========================================
-           Premium Report A4 Styles (NEW V5) 
-           ========================================== */
+            Premium Report A4 Styles (NEW V5) 
+            ========================================== */
         .report-wrapper { background: #cbd5e1; padding: 40px 20px; border-radius: 12px; overflow-x: auto; margin-bottom: 30px; display: none; }
         .premium-a4 {
             background: #fff;
@@ -1789,11 +1789,32 @@
         }, 5000);
     }
 
+    // دالة جديدة لمعالجة النصوص العربية وتجاهل الهمزات والتاء المربوطة
+    function normalizeArabic(text) {
+        if (!text) return '';
+        return text.trim().replace(/[أإآا]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
+    }
+
     function populateStudentDropdowns() {
         let subOpts = '<option value="">-- اختر المادة --</option>';
         if(window.currentUser) {
-            db.subjects.filter(s => s.grade === window.currentUser.grade && s.schoolId === window.currentUser.schoolId)
-                .forEach(s => subOpts += `<option value="${s.id}">${s.name} (${s.term})</option>`);
+            let stGrade = window.currentUser.grade || '';
+            let normStGrade = normalizeArabic(stGrade);
+            let stSchool = window.currentUser.schoolId;
+            
+            db.subjects.forEach(s => {
+                let normSubGrade = normalizeArabic(s.grade);
+                
+                // تطابق المدرسة: يعرض المادة إذا تطابقت المدرسة، أو إذا كانت المادة عامة (بدون مدرسة)، أو الطالب بلا مدرسة
+                let schoolMatch = (!s.schoolId || s.schoolId === stSchool || !stSchool);
+                
+                // تطابق الصف: يتجاهل الهمزات والفروقات البسيطة، أو يعرض المادة إذا ترك المدير خانة الصف فارغة
+                let gradeMatch = !normSubGrade || normSubGrade === normStGrade || normSubGrade.includes(normStGrade) || normStGrade.includes(normSubGrade);
+                
+                if(schoolMatch && gradeMatch) {
+                    subOpts += `<option value="${s.id}">${s.name} (${s.term || '-'})</option>`;
+                }
+            });
         }
         if($('logSubject')) $('logSubject').innerHTML = subOpts;
         if($('actSubject')) $('actSubject').innerHTML = subOpts;
@@ -1940,10 +1961,21 @@
         let st = db.students.find(x => x.id === sId);
         let subOpts = '<option value="">-- اختر المادة --</option>';
         if(st) {
-            db.subjects.filter(s => s.grade === st.grade && s.schoolId === st.schoolId)
-                .forEach(s => subOpts += `<option value="${s.id}">${s.name} (${s.term})</option>`);
+            let stGrade = st.grade || '';
+            let normStGrade = normalizeArabic(stGrade);
+            let stSchool = st.schoolId;
+            
+            db.subjects.forEach(s => {
+                let normSubGrade = normalizeArabic(s.grade);
+                let schoolMatch = (!s.schoolId || s.schoolId === stSchool || !stSchool);
+                let gradeMatch = !normSubGrade || normSubGrade === normStGrade || normSubGrade.includes(normStGrade) || normStGrade.includes(normSubGrade);
+                
+                if (schoolMatch && gradeMatch) {
+                    subOpts += `<option value="${s.id}">${s.name} (${s.term || '-'})</option>`;
+                }
+            });
         } else {
-            db.subjects.forEach(s => subOpts += `<option value="${s.id}">${s.name}</option>`); 
+            db.subjects.forEach(s => subOpts += `<option value="${s.id}">${s.name} (${s.term || '-'})</option>`); 
         }
         if($(subjectSelectId)) $(subjectSelectId).innerHTML = subOpts;
     };
