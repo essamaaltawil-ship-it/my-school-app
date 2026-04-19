@@ -1201,46 +1201,94 @@
         }
     }
 
-    // --- WebRTC Camera ---
+    // --- WebRTC Camera (محرك البث المطور) ---
     function startStudentCamera() {
         navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
             window.localVideoStream = stream;
             $('studentVideo').srcObject = stream;
             $('studentVideoContainer').style.display = 'block';
+            
+            // تنظيف أي اتصال قديم لضمان عدم حدوث تداخل
+            if (window.myPeer) { window.myPeer.destroy(); }
+            
             let peerId = 'qais-v4-std-' + window.currentUser.id;
             window.myPeer = new Peer(peerId);
+            
             window.myPeer.on('connection', conn => {
-                conn.on('data', data => { if (data === 'request_stream') window.myPeer.call(conn.peer, window.localVideoStream); });
+                conn.on('data', data => { 
+                    // عندما يطلب المدير البث، نقوم بالاتصال به وإرسال الفيديو
+                    if (data === 'request_stream' && window.localVideoStream) {
+                        window.myPeer.call(conn.peer, window.localVideoStream); 
+                    } 
+                });
             });
-        }).catch(err => console.warn("Camera error"));
+
+            window.myPeer.on('error', err => {
+                console.warn("PeerJS Student Error:", err);
+            });
+
+        }).catch(err => {
+            console.warn("Camera error", err);
+            showToast('تعذر تشغيل الكاميرا، يرجى إعطاء الصلاحية للمتصفح.', 'bg-error');
+        });
     }
+
     function stopStudentCamera() {
         if (window.localVideoStream) window.localVideoStream.getTracks().forEach(track => track.stop());
         $('studentVideoContainer').style.display = 'none';
         if (window.myPeer) { window.myPeer.destroy(); window.myPeer = null; }
     }
+
     window.watchStudentCamera = function(studentId, studentName) {
-        if (!window.myPeer) {
-            window.myPeer = new Peer('qais-v4-admin-' + Math.floor(Math.random()*1000));
-            window.myPeer.on('call', call => {
-                call.answer(); 
-                call.on('stream', remoteStream => {
-                    $('adminVideo').srcObject = remoteStream;
-                    $('adminVideoWrapper').style.display = 'block';
-                    $('watchingName').innerText = studentName;
-                    showToast('تم التقاط البث المباشر', 'bg-success');
-                });
-            });
+        showToast('جاري تهيئة قناة الاتصال المباشر...', 'bg-info');
+        
+        // تدمير أي اتصال سابق لضمان بدء اتصال نظيف وجديد
+        if (window.myPeer) {
+            window.myPeer.destroy();
+            window.myPeer = null;
         }
-        showToast('جاري الاتصال بجهاز الطالب...', 'bg-info');
-        setTimeout(() => {
+
+        // إنشاء معرف جديد للمدير
+        window.myPeer = new Peer('qais-v4-admin-' + Math.floor(Math.random()*10000));
+        
+        // 1. ننتظر حتى يكتمل اتصال المدير بسيرفر PeerJS
+        window.myPeer.on('open', (id) => {
+            showToast('جاري الاتصال بكاميرا الطالب...', 'bg-info');
+            
+            // 2. نقوم بطلب الاتصال بالطالب
             let conn = window.myPeer.connect('qais-v4-std-' + studentId);
-            if(conn) {
-                conn.on('open', () => { conn.send('request_stream'); });
-                conn.on('error', () => { showToast('الطالب غير متصل أو رافض للكاميرا', 'bg-error'); });
+            
+            conn.on('open', () => { 
+                conn.send('request_stream'); // إرسال أمر فتح الكاميرا
+            });
+            
+            conn.on('error', () => { 
+                showToast('تعذر الوصول لبيانات الطالب', 'bg-error'); 
+            });
+        });
+
+        // 3. الاستماع لرد الطالب (عندما يرسل الفيديو)
+        window.myPeer.on('call', call => {
+            call.answer(); 
+            call.on('stream', remoteStream => {
+                $('adminVideo').srcObject = remoteStream;
+                $('adminVideoWrapper').style.display = 'block';
+                $('watchingName').innerText = studentName;
+                showToast('تم التقاط البث المباشر بنجاح', 'bg-success');
+            });
+        });
+
+        // معالجة الأخطاء الشائعة (مثل خروج الطالب من النظام فجأة)
+        window.myPeer.on('error', err => {
+            if(err.type === 'peer-unavailable') {
+                showToast('الطالب أوقف المذاكرة أو انقطع اتصاله بالإنترنت', 'bg-error');
+            } else {
+                showToast('حدث خطأ في شبكة الاتصال المرئي', 'bg-error');
             }
-        }, 1500);
+            $('adminVideoWrapper').style.display = 'none';
+        });
     };
+
     window.stopWatchingCamera = function() {
         $('adminVideo').srcObject = null; $('adminVideoWrapper').style.display = 'none';
         if (window.myPeer) { window.myPeer.destroy(); window.myPeer = null; }
@@ -1789,10 +1837,15 @@
         }, 5000);
     }
 
-    // دالة جديدة لمعالجة النصوص العربية وتجاهل الهمزات والتاء المربوطة
+    // دالة متطورة جداً لمعالجة النصوص العربية وتجاهل (ال) التعريف، الهمزات، والمسافات
     function normalizeArabic(text) {
         if (!text) return '';
-        return text.trim().replace(/[أإآا]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
+        return text.trim()
+            .replace(/[أإآا]/g, 'ا') // توحيد الألف
+            .replace(/ة/g, 'ه') // توحيد التاء المربوطة
+            .replace(/ى/g, 'ي') // توحيد الألف المقصورة
+            .replace(/ال/g, '') // إزالة (ال) التعريف لتتطابق كلمة (الأول) مع (أول)
+            .replace(/\s+/g, ''); // إزالة المسافات نهائياً لضمان التطابق التام
     }
 
     function populateStudentDropdowns() {
