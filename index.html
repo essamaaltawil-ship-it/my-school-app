@@ -1548,7 +1548,7 @@
 
     async function callGeminiAPI(payload) {
         // تم تفعيل نموذج Gemini 1.5 Pro الاحترافي الأقوى
-        const model = 'gemini-1.5-pro';
+        const model = 'gemini-1.5-flash';
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         
         const delays = [1000, 2000, 4000, 8000, 16000];
