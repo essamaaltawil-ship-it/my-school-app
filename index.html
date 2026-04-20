@@ -1116,8 +1116,8 @@
         }; 
     }
     
-    // API Key must be empty per rules
-    const apiKey = "AIzaSyAfrGF283Bntdd9qQDlELB6Bt7pmI6JZis";
+    // API Key: قمت بإضافة مفتاحك هنا ليعمل الكود بشكل مباشر على جهازك
+    const apiKey = "AIzaSyAfrGF283Bntdd9qQDlELB6Bt7pmI6JZis"; 
 
     const DEFAULT_DB = { 
         admin: { user: 'admin', pass: '12345' }, 
@@ -1547,8 +1547,8 @@
     };
 
     async function callGeminiAPI(payload) {
-        // Strict requirement: gemini-2.5-flash-preview-09-2025
-        const model = 'gemini-2.5-flash-preview-09-2025';
+        // تم تفعيل نموذج Gemini 1.5 Pro الاحترافي الأقوى
+        const model = 'gemini-1.5-pro';
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         
         const delays = [1000, 2000, 4000, 8000, 16000];
