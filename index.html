@@ -1195,7 +1195,8 @@
         } else {
             updateStudentDashboardStats();
             populateStudentDropdowns();
-            renderStudentTables();
+            renderStdStudyLogsTable(); // تحديث جدول المذاكرة
+            renderStdActivitiesTable(); // تحديث جدول الأنشطة
             renderStudentAiExams();
             if($('std-reports').classList.contains('active')) generateStudentReport();
         }
@@ -1850,6 +1851,7 @@
 
     function populateStudentDropdowns() {
         let subOpts = '<option value="">-- اختر المادة --</option>';
+        let filterSubOpts = '<option value="all">كل المواد</option>'; // للفلاتر
         if(window.currentUser) {
             let stGrade = window.currentUser.grade || '';
             let normStGrade = normalizeArabic(stGrade);
@@ -1866,23 +1868,74 @@
                 
                 if(schoolMatch && gradeMatch) {
                     subOpts += `<option value="${s.id}">${s.name} (${s.term || '-'})</option>`;
+                    filterSubOpts += `<option value="${s.id}">${s.name}</option>`;
                 }
             });
         }
         if($('logSubject')) $('logSubject').innerHTML = subOpts;
         if($('actSubject')) $('actSubject').innerHTML = subOpts;
+        if($('filterStudySubject')) $('filterStudySubject').innerHTML = filterSubOpts;
+        if($('filterActSubjectLog')) $('filterActSubjectLog').innerHTML = filterSubOpts;
     }
 
-    function renderStudentTables() {
-        if(!$('tableStdActivities')) return;
-        let html = '<thead><tr><th>التاريخ</th><th>النوع</th><th>الإنجاز</th></tr></thead><tbody>';
-        let myAct = db.activities.filter(a => a.sId === window.currentUser.id);
-        if(myAct.length === 0) {
-            html += '<tr><td colspan="3" style="text-align:center">لا يوجد نشاطات مسجلة</td></tr>';
+    // دالة جديدة لرسم جدول سجل المذاكرة للطالب مع الفلاتر
+    window.renderStdStudyLogsTable = function() {
+        if(!$('tableStdStudyLogs')) return;
+        let sId = window.currentUser.id;
+        let typeFlt = v('filterStudyType');
+        let subFlt = v('filterStudySubject');
+        let getSub = id => { let s = db.subjects.find(x=>x.id===id); return s?s.name:'-';};
+        
+        let logs = [];
+        if(typeFlt === 'all' || typeFlt === 'harvest') db.harvest.filter(x=>x.sId===sId).forEach(x=>logs.push({...x, catName:'حصاد دوري', color:'badge-blue'}));
+        if(typeFlt === 'all' || typeFlt === 'study') db.study.filter(x=>x.sId===sId).forEach(x=>logs.push({...x, catName:'مذاكرة ذاتية', color:'badge-green'}));
+        if(typeFlt === 'all' || typeFlt === 'review') db.review.filter(x=>x.sId===sId).forEach(x=>logs.push({...x, catName:'مراجعة', color:'badge-purple'}));
+
+        // تصفية حسب المادة
+        if(subFlt !== 'all') logs = logs.filter(x => x.subId === subFlt);
+
+        logs.sort((a,b) => new Date(b.isoDate || b.date) - new Date(a.isoDate || a.date));
+
+        let html = '<thead><tr><th>التاريخ</th><th>النوع</th><th>المادة</th><th>التفاصيل</th></tr></thead><tbody>';
+        if(logs.length === 0) {
+            html += '<tr><td colspan="4" style="text-align:center; color: var(--text-light);">لا توجد سجلات مطابقة للبحث</td></tr>';
         } else {
-            html += myAct.map(a => `<tr><td>${a.date}</td><td><span class="badge badge-orange">${a.type}</span></td><td>${a.title}</td></tr>`).join('');
+            html += logs.map(l => {
+                let details = l.catName === 'حصاد دوري' ? `حصة ${l.period} - ${l.lesson} (ص ${l.start}-${l.end})` : `من ص ${l.start} إلى ص ${l.end}`;
+                return `<tr><td>${l.isoDate || l.date}</td><td><span class="badge ${l.color}">${l.catName}</span></td><td>${getSub(l.subId)}</td><td>${details}</td></tr>`;
+            }).join('');
+        }
+        $('tableStdStudyLogs').innerHTML = html + '</tbody>';
+    };
+
+    // تم التعديل لتشمل الفلاتر
+    window.renderStdActivitiesTable = function() {
+        if(!$('tableStdActivities')) return;
+        let sId = window.currentUser.id;
+        let typeFlt = v('filterActLogType');
+        let subFlt = v('filterActSubjectLog');
+        let getSub = id => { let s = db.subjects.find(x=>x.id===id); return s?s.name:'عام';};
+
+        let myAct = db.activities.filter(a => a.sId === sId);
+        
+        if(typeFlt && typeFlt !== 'all') myAct = myAct.filter(a => a.type === typeFlt);
+        if(subFlt && subFlt !== 'all') myAct = myAct.filter(a => a.subId === subFlt);
+        
+        myAct.sort((a,b) => new Date(b.isoDate || b.date) - new Date(a.isoDate || a.date));
+
+        let html = '<thead><tr><th>التاريخ</th><th>النوع</th><th>المادة</th><th>الإنجاز</th></tr></thead><tbody>';
+        if(myAct.length === 0) {
+            html += '<tr><td colspan="4" style="text-align:center; color: var(--text-light);">لا توجد نشاطات مطابقة للبحث</td></tr>';
+        } else {
+            html += myAct.map(a => `<tr><td>${a.date}</td><td><span class="badge badge-orange">${a.type}</span></td><td>${getSub(a.subId)}</td><td>${a.title}</td></tr>`).join('');
         }
         $('tableStdActivities').innerHTML = html + '</tbody>';
+    }
+
+    // إزالة renderStudentTables القديمة لأننا استبدلناها
+    function renderStudentTables() {
+        renderStdStudyLogsTable();
+        renderStdActivitiesTable();
     }
 
     window.switchStdLogType = function(type) {
@@ -1914,7 +1967,7 @@
         let type = v('actType'), subId = v('actSubject'), title = v('actTitle');
         if(!title) return showToast('يرجى وصف الإنجاز', 'bg-error');
         db.activities.push({ id: generateId(), sId: window.currentUser.id, subId, type, title, date: new Date().toLocaleDateString('ar-SA'), isoDate: getTodayIso() });
-        saveDb(); updateStudentDashboardStats(); renderStudentTables(); showToast('تم اعتماد الإنجاز!', 'bg-success');
+        saveDb(); updateStudentDashboardStats(); renderStdActivitiesTable(); showToast('تم اعتماد الإنجاز!', 'bg-success');
         $('actTitle').value = '';
     };
 
@@ -2345,9 +2398,14 @@
         }
         $(pfx+'TableExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الاختبار / مقياس الأداء</th><th>الدرجة</th></tr></thead><tbody>${combinedExamsTable}</tbody>`;
 
-        let myHarv = db.harvest.filter(dFilter).map(x => ({...x, logType: 'حصاد دوري', color: '#2563eb'}));
-        let myStudy = db.study.filter(dFilter).map(x => ({...x, logType: 'مذاكرة ذاتية', color: '#10b981'}));
-        let myRev = db.review.filter(dFilter).map(x => ({...x, logType: 'مراجعة', color: '#8b5cf6'}));
+        // قراءة خيارات فلاتر التقرير
+        let incHarv = $(pfx+'IncHarvest') ? $(pfx+'IncHarvest').checked : true;
+        let incStudy = $(pfx+'IncStudy') ? $(pfx+'IncStudy').checked : true;
+        let incRev = $(pfx+'IncReview') ? $(pfx+'IncReview').checked : true;
+
+        let myHarv = incHarv ? db.harvest.filter(dFilter).map(x => ({...x, logType: 'حصاد دوري', color: '#2563eb'})) : [];
+        let myStudy = incStudy ? db.study.filter(dFilter).map(x => ({...x, logType: 'مذاكرة ذاتية', color: '#10b981'})) : [];
+        let myRev = incRev ? db.review.filter(dFilter).map(x => ({...x, logType: 'مراجعة', color: '#8b5cf6'})) : [];
         
         let allStudyLogs = [...myHarv, ...myStudy, ...myRev].sort((a, b) => new Date(b.isoDate || b.date) - new Date(a.isoDate || a.date));
 
@@ -2355,7 +2413,7 @@
             (allStudyLogs.length ? allStudyLogs.map(h => {
                 let details = h.logType === 'حصاد دوري' ? `حصة ${h.period} - ${h.lesson} (ص ${h.start} إلى ${h.end})` : `تغطية من ص ${h.start} إلى ص ${h.end}`;
                 return `<tr><td>${h.isoDate || h.date}</td><td style="color:${h.color}; font-weight:bold;">${h.logType}</td><td style="font-weight:bold;">${getSub(h.subId)}</td><td>${details}</td></tr>`;
-            }).join('') : `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">لا توجد سجلات متابعة مسجلة</td></tr>`) + `</tbody>`;
+            }).join('') : `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">لا توجد سجلات متابعة مسجلة ضمن التصنيفات المحددة</td></tr>`) + `</tbody>`;
             
         let myAct = db.activities.filter(dFilter);
         $(pfx+'TableActivities').innerHTML = `<thead><tr><th>التاريخ</th><th>تصنيف الإثراء</th><th>المادة المرجعية</th><th>وصف الإنجاز التفصيلي</th></tr></thead><tbody>` + 
