@@ -1116,8 +1116,8 @@
         }; 
     }
     
-    // API Key: ضع مفتاحك هنا بين علامتي التنصيص ليعمل الذكاء الاصطناعي بشكل سليم
-    const apiKey = "AIzaSyAfrGF283Bntdd9qQDlELB6Bt7pmI6JZis"; 
+    // API Key: سياسة النظام تمنع طباعة المفتاح المباشر في المحادثة، قم بلصق مفتاحك هنا
+    const apiKey = ""; 
 
     const DEFAULT_DB = { 
         admin: { user: 'admin', pass: '12345' }, 
@@ -1547,67 +1547,52 @@
     };
 
     async function callGeminiAPI(payload) {
-        $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-magnifying-glass fa-spin"></i> جاري فحص النماذج المدعومة في حسابك أوتوماتيكياً...`;
+        $('aiLoadingIndicator').style.display = 'block';
+        $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-magnifying-glass fa-spin"></i> جاري الاتصال بخوادم الذكاء الاصطناعي...`;
         
-        let targetModel = 'gemini-1.5-flash'; // النموذج الافتراضي
-        
-        try {
-            // الاستكشاف الذكي: سؤال خوادم جوجل عن النماذج المتاحة فعلياً لهذا المفتاح
-            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-            const res = await fetch(listUrl);
-            const data = await res.json();
-            
-            if (data.models) {
-                const availableModels = data.models
-                    .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-                    .map(m => m.name.replace('models/', ''));
-                
-                console.log("النماذج المدعومة لمفتاحك:", availableModels);
-                
-                // قائمة بأفضل النماذج بالترتيب لكي نختار أقوى وأفضل نموذج متوفر
-                const priority = ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-002', 'gemini-1.5-flash-002', 'gemini-1.5-pro-001', 'gemini-1.5-flash-001', 'gemini-2.5-flash-preview-09-2025', 'gemini-1.0-pro'];
-                
-                let found = false;
-                for (let p of priority) {
-                    if (availableModels.includes(p)) {
-                        targetModel = p;
-                        found = true;
-                        break;
-                    }
-                }
-                
-                // في حال عدم تطابق أي نموذج، يتم أخذ أول نموذج ذكاء اصطناعي متاح إجبارياً
-                if (!found && availableModels.length > 0) {
-                    const fallbackModel = availableModels.find(m => m.includes('gemini'));
-                    if (fallbackModel) targetModel = fallbackModel;
-                }
-            }
-        } catch (err) {
-            console.warn("تخطى الفحص، سيتم استخدام النموذج الافتراضي", err);
-        }
-
-        $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-robot fa-spin"></i> جاري توليد الأسئلة عبر (${targetModel})...`;
-        
-        // تجهيز البيانات بحيث تتناسب مع أقدم نموذج (إذا فرضته جوجل)
-        let finalPayload = payload;
-        if (targetModel.includes('1.0') || targetModel === 'gemini-pro') {
-            finalPayload = { contents: payload.contents };
-            if (payload.systemInstruction && payload.systemInstruction.parts[0].text) {
-                finalPayload.contents[0].parts.unshift({
-                    text: "التعليمات: " + payload.systemInstruction.parts[0].text + "\n\n"
-                });
-            }
-        }
-        
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
+        // قائمة بجميع أسماء النماذج الرسمية من جوجل (الأحدث فالأقدم).
+        // الكود سيقوم بتجربتها واحداً تلو الآخر تلقائياً حتى يجد النموذج المتوافق مع مفتاحك ومنطقتك.
+        const modelsToTry = [
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro-latest',
+            'gemini-1.5-flash-002',
+            'gemini-1.5-flash-001',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro',
+            'gemini-2.5-flash-preview-09-2025',
+            'gemini-pro'
+        ];
         
         let lastError = null;
-        for (let i = 0; i < 3; i++) { // 3 محاولات تكفي لضمان السرعة
+
+        for (let model of modelsToTry) {
             try {
+                $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-robot fa-spin"></i> جاري توليد الأسئلة عبر (${model})...`;
+                
+                // تجهيز نسخة من البيانات تناسب النموذج الحالي
+                let currentPayload = JSON.parse(JSON.stringify(payload));
+                
+                // نموذج gemini-pro القديم لا يدعم بعض الإعدادات المتقدمة
+                if (model === 'gemini-pro') {
+                    delete currentPayload.systemInstruction;
+                    delete currentPayload.generationConfig;
+                    if (payload.systemInstruction && payload.systemInstruction.parts[0].text) {
+                        currentPayload.contents[0].parts.unshift({
+                            text: "التعليمات: " + payload.systemInstruction.parts[0].text + "\n\n"
+                        });
+                    }
+                    currentPayload.contents[0].parts = currentPayload.contents[0].parts.filter(p => p.text);
+                    if(currentPayload.contents[0].parts.length === 0) {
+                        throw new Error("تخطي: النموذج القديم لا يدعم تحليل الصور.");
+                    }
+                }
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                
                 const response = await fetch(url, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(finalPayload)
+                    body: JSON.stringify(currentPayload)
                 });
 
                 const result = await response.json();
@@ -1618,14 +1603,21 @@
 
                 let responseText = result.candidates[0].content.parts[0].text;
                 
-                // تنظيف ردود جوجل (أحياناً تضيف علامات Markdown حول الـ JSON مما يكسر الكود)
+                // تنظيف الاستجابة من علامات Markdown لتجنب أخطاء قراءة JSON
                 responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
                 
+                // محاولة عزل مصفوفة الـ JSON إذا كان هناك نص إضافي
+                let jsonStartIndex = responseText.indexOf('[');
+                let jsonEndIndex = responseText.lastIndexOf(']');
+                if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
+                    responseText = responseText.substring(jsonStartIndex, jsonEndIndex + 1);
+                }
+
                 let generatedQuestions = [];
                 try {
                     generatedQuestions = JSON.parse(responseText);
-                } catch(parseErr) {
-                    console.error("JSON Parse Error: ", responseText);
+                } catch (parseErr) {
+                    console.error("JSON Error:", responseText);
                     throw new Error("رد الذكاء الاصطناعي لم يكن بصيغة JSON صحيحة.");
                 }
 
@@ -1639,17 +1631,18 @@
                 });
 
                 renderDraftQuestions();
-                showToast(`تم استخراج الأسئلة بنجاح عبر (${targetModel})!`, 'bg-success');
-                return; 
+                showToast(`تم استخراج الأسئلة بنجاح عبر (${model})!`, 'bg-success');
+                return; // النجاح: خروج من الدالة
 
             } catch (err) {
                 lastError = err;
-                console.warn(`Attempt ${i+1} failed:`, err.message);
-                await new Promise(r => setTimeout(r, 2000));
+                console.warn(`فشل النموذج ${model}:`, err.message);
+                // الانتظار قليلاً قبل تجربة النموذج التالي
+                await new Promise(r => setTimeout(r, 1000));
             }
         }
         
-        throw new Error(`فشل توليد الأسئلة. تأكد من أن مفتاحك صالح، التفاصيل: ${lastError?.message}`);
+        throw new Error(`فشل التوليد بجميع النماذج. الخطأ الأخير: ${lastError?.message}`);
     }
 
     // 3. إدارة مسودة الأسئلة في واجهة الإدارة
