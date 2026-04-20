@@ -1116,8 +1116,8 @@
         }; 
     }
     
-    // API Key: قمت بإضافة مفتاحك هنا ليعمل الكود بشكل مباشر داخل زر الـ Preview هنا في المحادثة (فارغ)
-    const apiKey = ""; 
+    // API Key: ضع مفتاحك هنا بين علامتي التنصيص ليعمل الذكاء الاصطناعي بشكل سليم
+    const apiKey = "AIzaSyAfrGF283Bntdd9qQDlELB6Bt7pmI6JZis"; 
 
     const DEFAULT_DB = { 
         admin: { user: 'admin', pass: '12345' }, 
@@ -1454,7 +1454,7 @@
 
 
     // ==========================================
-    // --- AI PARENT EXAMS LOGIC (Ultimate Hybrid Parser) ---
+    // --- AI PARENT EXAMS LOGIC (Ultimate Auto-Discovery System) ---
     // ==========================================
     
     window.processPdfForExams = async function(event) {
@@ -1547,21 +1547,67 @@
     };
 
     async function callGeminiAPI(payload) {
-        // النموذج المدعوم في بيئة المعاينة (Preview) هنا بالمحادثة
-        const model = 'gemini-2.5-flash-preview-09-2025';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-magnifying-glass fa-spin"></i> جاري فحص النماذج المدعومة في حسابك أوتوماتيكياً...`;
         
-        const delays = [1000, 2000, 4000, 8000, 16000];
-        let lastError = null;
-
-        for (let i = 0; i < 6; i++) {
-            try {
-                $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-robot fa-spin"></i> جاري توليد الأسئلة الذكية (محاولة ${i+1})...`;
+        let targetModel = 'gemini-1.5-flash'; // النموذج الافتراضي
+        
+        try {
+            // الاستكشاف الذكي: سؤال خوادم جوجل عن النماذج المتاحة فعلياً لهذا المفتاح
+            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+            const res = await fetch(listUrl);
+            const data = await res.json();
+            
+            if (data.models) {
+                const availableModels = data.models
+                    .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+                    .map(m => m.name.replace('models/', ''));
                 
+                console.log("النماذج المدعومة لمفتاحك:", availableModels);
+                
+                // قائمة بأفضل النماذج بالترتيب لكي نختار أقوى وأفضل نموذج متوفر
+                const priority = ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.5-pro-latest', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-002', 'gemini-1.5-flash-002', 'gemini-1.5-pro-001', 'gemini-1.5-flash-001', 'gemini-2.5-flash-preview-09-2025', 'gemini-1.0-pro'];
+                
+                let found = false;
+                for (let p of priority) {
+                    if (availableModels.includes(p)) {
+                        targetModel = p;
+                        found = true;
+                        break;
+                    }
+                }
+                
+                // في حال عدم تطابق أي نموذج، يتم أخذ أول نموذج ذكاء اصطناعي متاح إجبارياً
+                if (!found && availableModels.length > 0) {
+                    const fallbackModel = availableModels.find(m => m.includes('gemini'));
+                    if (fallbackModel) targetModel = fallbackModel;
+                }
+            }
+        } catch (err) {
+            console.warn("تخطى الفحص، سيتم استخدام النموذج الافتراضي", err);
+        }
+
+        $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-robot fa-spin"></i> جاري توليد الأسئلة عبر (${targetModel})...`;
+        
+        // تجهيز البيانات بحيث تتناسب مع أقدم نموذج (إذا فرضته جوجل)
+        let finalPayload = payload;
+        if (targetModel.includes('1.0') || targetModel === 'gemini-pro') {
+            finalPayload = { contents: payload.contents };
+            if (payload.systemInstruction && payload.systemInstruction.parts[0].text) {
+                finalPayload.contents[0].parts.unshift({
+                    text: "التعليمات: " + payload.systemInstruction.parts[0].text + "\n\n"
+                });
+            }
+        }
+        
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`;
+        
+        let lastError = null;
+        for (let i = 0; i < 3; i++) { // 3 محاولات تكفي لضمان السرعة
+            try {
                 const response = await fetch(url, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(finalPayload)
                 });
 
                 const result = await response.json();
@@ -1571,7 +1617,17 @@
                 }
 
                 let responseText = result.candidates[0].content.parts[0].text;
-                const generatedQuestions = JSON.parse(responseText);
+                
+                // تنظيف ردود جوجل (أحياناً تضيف علامات Markdown حول الـ JSON مما يكسر الكود)
+                responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                
+                let generatedQuestions = [];
+                try {
+                    generatedQuestions = JSON.parse(responseText);
+                } catch(parseErr) {
+                    console.error("JSON Parse Error: ", responseText);
+                    throw new Error("رد الذكاء الاصطناعي لم يكن بصيغة JSON صحيحة.");
+                }
 
                 generatedQuestions.forEach(q => {
                     window.draftExamQuestions.push({
@@ -1583,19 +1639,17 @@
                 });
 
                 renderDraftQuestions();
-                showToast('تم استخراج الأسئلة الذكية بنجاح!', 'bg-success');
-                return; // Success, exit loop
+                showToast(`تم استخراج الأسئلة بنجاح عبر (${targetModel})!`, 'bg-success');
+                return; 
 
             } catch (err) {
                 lastError = err;
                 console.warn(`Attempt ${i+1} failed:`, err.message);
-                if (i < 5) {
-                    await new Promise(r => setTimeout(r, delays[i]));
-                }
+                await new Promise(r => setTimeout(r, 2000));
             }
         }
         
-        throw new Error(`فشل توليد الأسئلة بعد 5 محاولات. تفاصيل الخطأ: ${lastError?.message}`);
+        throw new Error(`فشل توليد الأسئلة. تأكد من أن مفتاحك صالح، التفاصيل: ${lastError?.message}`);
     }
 
     // 3. إدارة مسودة الأسئلة في واجهة الإدارة
