@@ -7,12 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- مكتبات البث وقراءة الـ PDF -->
+    <!-- مكتبات البث -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-    </script>
     <!-- مكتبة الرسوم البيانية للتقارير -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -281,7 +277,7 @@
             <a class="nav-link" onclick="nav('admin-reports', this)"><i class="fa-solid fa-file-invoice"></i> التقرير الشامل</a>
             <hr style="border:none; border-top:1px solid rgba(255,255,255,0.05); margin: 10px 20px;">
             <a class="nav-link" onclick="nav('admin-permissions', this)" style="color:#fbbf24;"><i class="fa-solid fa-user-lock"></i> صلاحيات الطلاب</a>
-            <a class="nav-link" onclick="nav('admin-aiexams', this)" style="color:#c084fc;"><i class="fa-solid fa-robot"></i> مراجعة الوالد (AI)</a>
+            <a class="nav-link" onclick="nav('admin-aiexams', this)" style="color:#c084fc;"><i class="fa-solid fa-file-circle-question"></i> اختبارات ومراجعة الوالد</a>
             <a class="nav-link" onclick="nav('admin-settings', this)"><i class="fa-solid fa-gear"></i> الإعدادات الأكاديمية</a>
         </div>
 
@@ -424,7 +420,7 @@
                         </div>
                         <div class="permission-row" style="background: #f3e8ff;">
                             <div>
-                                <b>إظهار شاشة (اختبارات الوالد AI)</b>
+                                <b>إظهار شاشة (اختبارات الوالد)</b>
                                 <div style="font-size:0.8rem; color:var(--text-light);">يجب تفعيلها ليتمكن الطالب من رؤية الاختبارات المرسلة إليه وحلها.</div>
                             </div>
                             <label class="switch"><input type="checkbox" id="perm_canAiExams"><span class="slider"></span></label>
@@ -443,42 +439,41 @@
                 </div>
             </div>
 
-            <!-- Admin AI Exams -->
+            <!-- Admin AI Exams (Now: Study Loop Exams) -->
             <div id="admin-aiexams" class="section-view">
-                <h2 class="section-title"><i class="fa-solid fa-robot" style="color:var(--purple);"></i> اختبارات ومراجعة الوالد (بالذكاء الاصطناعي)</h2>
+                <h2 class="section-title"><i class="fa-solid fa-file-circle-question" style="color:var(--purple);"></i> اختبارات ومراجعة الوالد (المرتبطة بالمذاكرة)</h2>
                 
                 <div class="grid-2">
                     <!-- Create Exam -->
                     <div class="card" style="border-top: 4px solid var(--purple);">
-                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-wand-magic-sparkles"></i> إنشاء اختبار ذكي جديد</h3>
-                        <div class="form-group"><label>الطالب المستهدف</label><select id="aiExStudent" onchange="filterSubjectsByStudent('aiExStudent', 'aiExSubject')"></select></div>
-                        <div class="form-group"><label>المادة</label><select id="aiExSubject"></select></div>
-                        <div class="form-group"><label>عنوان الاختبار (نطاق المذاكرة)</label><input type="text" id="aiExTitle" placeholder="مثال: مراجعة الوحدة الأولى - ص 10 إلى 15"></div>
+                        <h3 style="margin-bottom: 15px; color: var(--purple);"><i class="fa-solid fa-link"></i> إعداد اختبار للتأكد من الفهم</h3>
+                        <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">
+                            اختر الطالب، ثم حدد السجل المعين (المذاكرة أو المراجعة السابقة) لتربط الاختبار به لقياس فهمه الحقيقي.
+                        </p>
                         
-                        <!-- PDF Upload Area -->
-                        <div style="background: #faf5ff; padding: 20px; border-radius: 12px; border: 2px dashed var(--purple); margin-bottom: 20px; text-align: center;">
-                            <i class="fa-solid fa-file-pdf" style="font-size: 2.5rem; color: var(--purple); margin-bottom: 10px;"></i>
-                            <h4 style="color: var(--purple); margin-bottom: 5px;">مُولّد الأسئلة الذكي من ملف PDF</h4>
-                            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 15px;">
-                                ارفع ملف الـ PDF لصفحات الكتاب التي ذاكرها الطالب. سيقرأه النظام بالذكاء الاصطناعي، يولد أسئلة متنوعة (خيارات، صح وخطأ، مقالي)، ثم <b>يتخلص من الملف فوراً</b> دون تخزينه لعدم استهلاك مساحة.
-                            </p>
-                            
-                            <input type="file" id="aiPdfInput" accept="application/pdf" style="display:none;" onchange="processPdfForExams(event)">
-                            <button class="btn btn-purple" onclick="document.getElementById('aiPdfInput').click()"><i class="fa-solid fa-cloud-arrow-up"></i> رفع PDF وتوليد الأسئلة آلياً</button>
-                            
-                            <div id="aiLoadingIndicator" style="display:none; margin-top:15px; color:var(--purple); font-weight:bold;">
-                                <i class="fa-solid fa-circle-notch fa-spin"></i> جاري قراءة الملف وتحليل الذكاء الاصطناعي... الرجاء الانتظار
-                            </div>
+                        <div class="form-group">
+                            <label>1. الطالب المستهدف</label>
+                            <select id="aiExStudent" onchange="loadStudentStudyLogsForExam()"></select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>2. سجل المذاكرة المرتبط به الاختبار</label>
+                            <select id="aiExRelatedLog" onchange="autoFillExamTitle()"><option value="">-- اختر سجل المذاكرة --</option></select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>3. عنوان الاختبار (يتم تعبئته تلقائياً أو تعديله)</label>
+                            <input type="text" id="aiExTitle" placeholder="مثال: مراجعة الوحدة الأولى - ص 10 إلى 15">
                         </div>
 
                         <!-- Manual Question Builder -->
-                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">
-                            <h4 style="color: var(--dark);">الأسئلة المُعدة للاختبار:</h4>
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; margin-top:25px;">
+                            <h4 style="color: var(--dark); margin:0;">الأسئلة المُعدة للاختبار:</h4>
                             <button class="btn btn-outline btn-small" onclick="addManualDraftQuestion()"><i class="fa-solid fa-plus"></i> إضافة سؤال يدوياً</button>
                         </div>
                         
                         <div id="aiQuestionsContainer">
-                            <div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem;">لم يتم إضافة أسئلة بعد. ارفع ملف PDF أو أضف يدوياً.</div>
+                            <div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem; background:#f8fafc; border-radius:8px;">ابدأ بإضافة الأسئلة يدوياً عبر الزر أعلاه.</div>
                         </div>
                         
                         <div class="form-group" style="margin-top: 20px;">
@@ -494,7 +489,7 @@
 
                     <!-- Manage Exams -->
                     <div class="card">
-                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-list-check"></i> إدارة الاختبارات المرسلة والتقييم</h3>
+                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-list-check"></i> إدارة الاختبارات المرسلة وتحديد الإعادة</h3>
                         <div id="aiExamsAdminList" style="display:flex; flex-direction:column; gap:15px;">
                             <!-- Exams will be listed here -->
                         </div>
@@ -579,12 +574,12 @@
                         <div class="grid-4">
                             <label class="report-slide-toggle">
                                 <div class="report-slide-title"><input type="checkbox" id="repIncSummary" checked onchange="generateComprehensiveReport()"> الخلاصة والتحليل</div>
-                                <span style="font-size: 0.8rem; color: var(--text-light);">يشمل الرادار البياني، الـ KPIs، ورأي الذكاء الاصطناعي.</span>
+                                <span style="font-size: 0.8rem; color: var(--text-light);">يشمل الرادار البياني ومؤشرات الأداء.</span>
                             </label>
                             
                             <label class="report-slide-toggle">
                                 <div class="report-slide-title"><input type="checkbox" id="repIncExams" checked onchange="generateComprehensiveReport()"> سجل القياس والدرجات</div>
-                                <span style="font-size: 0.8rem; color: var(--text-light);">يشمل درجات المدارس، اختبارات نافس، والمراجعة الذكية.</span>
+                                <span style="font-size: 0.8rem; color: var(--text-light);">يشمل درجات المدارس، اختبارات نافس، والمراجعة الداخلية.</span>
                             </label>
 
                             <div class="report-slide-toggle">
@@ -867,18 +862,32 @@
                 </div>
                 
                 <div class="card">
-                    <h3 style="margin-bottom: 15px;">سجل أنشطتي</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                        <h3 style="margin: 0;"><i class="fa-solid fa-list"></i> سجل أنشطتي</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="filterActLogType" class="form-group" style="margin:0; padding: 5px 10px; font-size: 0.85rem;" onchange="renderStdActivitiesTable()">
+                                <option value="all">كل الأنواع</option>
+                                <option value="حل واجب منصة">حل واجب منصة</option>
+                                <option value="مشاهدة إثراء">مشاهدة إثراء</option>
+                                <option value="مشاركة صفية">مشاركة صفية مميزة</option>
+                                <option value="مشروع بحثي">مشروع بحثي</option>
+                            </select>
+                            <select id="filterActSubjectLog" class="form-group" style="margin:0; padding: 5px 10px; font-size: 0.85rem;" onchange="renderStdActivitiesTable()">
+                                <option value="all">كل المواد</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="table-responsive"><table id="tableStdActivities"></table></div>
                 </div>
             </div>
 
-            <!-- Student AI Exams -->
+            <!-- Student AI Exams (Now: Study Loop Exams) -->
             <div id="std-aiexams" class="section-view">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
                     <h2 class="section-title" style="color:var(--purple); margin:0;"><i class="fa-solid fa-file-circle-question"></i> اختبارات ومراجعة الوالد</h2>
                     <span class="badge badge-purple" style="font-size:1rem;">تحفيز وتقييم مستمر</span>
                 </div>
-                <p style="margin-bottom: 20px; color: var(--text-light); background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">هنا تظهر الاختبارات المصممة خصيصاً لقياس مستوى فهمك. بعضها قد يكون متاحاً للاستعراض فقط للاستعداد لها وتجهيز إجاباتك.</p>
+                <p style="margin-bottom: 20px; color: var(--text-light); background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">هنا تظهر الاختبارات المصممة خصيصاً لقياس مستوى فهمك لما قمت بمذاكرته. الإجابة بدقة تجنبك إعادة المذاكرة.</p>
                 
                 <div id="stdAiExamsList" style="display:flex; flex-direction:column; gap:20px;">
                     <!-- Exams rendered here -->
@@ -1055,15 +1064,15 @@
     </div>
 </div>
 
-<!-- Modal لتقييم الاختبار (المدير) -->
+<!-- Modal لتقييم الاختبار (المدير) - Study Loop Upgrade -->
 <div id="gradeAiExamModal" class="modal-overlay">
     <div class="modal-content" style="max-width: 700px;">
         <div class="modal-header">
-            <h3 style="margin:0; color:var(--purple);"><i class="fa-solid fa-check-to-slot"></i> المراجعة والتصحيح الآلي/اليدوي</h3>
+            <h3 style="margin:0; color:var(--purple);"><i class="fa-solid fa-check-to-slot"></i> تقييم وفحص جودة المذاكرة</h3>
             <button class="btn btn-outline btn-small" onclick="closeModal('gradeAiExamModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <input type="hidden" id="gradeExamId">
-        <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">الأسئلة الموضوعية (خيارات، صح وخطأ) يتم تصحيحها آلياً. راجع الأسئلة المقالية وعدل الدرجة النهائية حسب تقييمك.</p>
+        <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">راجع إجابات الطالب وقرر: هل استوعب ما تم ذاكرته أم يحتاج لإعادة المذاكرة والتسجيل من جديد؟</p>
         
         <div id="gradeExamContent" style="margin-bottom: 20px;"></div>
         
@@ -1072,7 +1081,15 @@
                 <div class="form-group"><label>الدرجة الممنوحة (من)</label><input type="number" id="gradeScore" style="color:var(--success); font-weight:bold; font-size:1.2rem;"></div>
                 <div class="form-group"><label>الدرجة النهائية الكلية</label><input type="number" id="gradeMax" value="10"></div>
             </div>
-            <button class="btn btn-purple" style="width: 100%;" onclick="submitAiExamGrade()"><i class="fa-solid fa-award"></i> اعتماد التقييم النهائي وتوثيقه</button>
+            
+            <!-- Study Loop Actions -->
+            <div style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
+                <label style="font-weight:bold; margin-bottom:10px; display:block;">القرار التعليمي للحصاد (Study Loop):</label>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-success" style="flex:1;" onclick="submitAiExamGrade('pass')"><i class="fa-solid fa-check-circle"></i> اجتاز بنجاح</button>
+                    <button class="btn btn-danger" style="flex:1;" onclick="submitAiExamGrade('fail_re_study')"><i class="fa-solid fa-rotate-left"></i> إخفاق (إرسال أمر إعادة مذاكرة)</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1116,7 +1133,7 @@
         }; 
     }
     
-    // API Key: سياسة النظام تمنع طباعة المفتاح المباشر في المحادثة، قم بلصق مفتاحك هنا
+    // API Key (لم يعد مستخدماً هنا لأننا ألغينا الذكاء الاصطناعي بناءً على طلبك)
     const apiKey = ""; 
 
     const DEFAULT_DB = { 
@@ -1452,200 +1469,57 @@
         }
     };
 
+    // ==========================================
+    // --- MANUAL STUDY LOOP EXAMS LOGIC (NO AI) ---
+    // ==========================================
 
-    // ==========================================
-    // --- AI PARENT EXAMS LOGIC (Ultimate Auto-Discovery System) ---
-    // ==========================================
-    
-    window.processPdfForExams = async function(event) {
-        const file = event.target.files[0];
-        if(!file) return;
+    // دالة جديدة لجلب سجلات المذاكرة الخاصة بالطالب لربطها بالاختبار
+    window.loadStudentStudyLogsForExam = function() {
+        let sId = v('aiExStudent');
+        let sel = $('aiExRelatedLog');
+        let getSub = id => { let s = db.subjects.find(x=>x.id===id); return s?s.name:'-';};
         
-        if (file.type !== "application/pdf") {
-            showToast('الرجاء رفع ملف بصيغة PDF فقط.', 'bg-error');
+        filterSubjectsByStudent('aiExStudent', 'aiExSubject');
+
+        if(!sId) {
+            sel.innerHTML = '<option value="">-- اختر الطالب أولاً --</option>';
             return;
         }
 
-        $('aiLoadingIndicator').style.display = 'block';
-        $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-file-text fa-spin"></i> جاري فحص وقراءة الملف...';
+        let logs = [];
+        db.harvest.filter(x=>x.sId===sId).forEach(x=>logs.push({...x, catName:'حصاد دوري'}));
+        db.study.filter(x=>x.sId===sId).forEach(x=>logs.push({...x, catName:'مذاكرة ذاتية'}));
+        db.review.filter(x=>x.sId===sId).forEach(x=>logs.push({...x, catName:'مراجعة'}));
+
+        logs.sort((a,b) => new Date(b.isoDate || b.date) - new Date(a.isoDate || a.date));
+
+        let opts = '<option value="">-- اختر سجل المذاكرة (اختياري) --</option>';
+        opts += logs.map(l => {
+            let details = l.catName === 'حصاد دوري' ? `حصة ${l.period} (ص ${l.start}-${l.end})` : `(ص ${l.start}-${l.end})`;
+            let isFailed = l.needsRestudy ? '🔴 (إعادة مذاكرة)' : '';
+            // Data attribute stringified so we can auto-fill title
+            let logDataStr = encodeURIComponent(JSON.stringify({subId: l.subId, text: `${l.catName} ${getSub(l.subId)} ${details}`}));
+            return `<option value="${l.id}" data-info="${logDataStr}">${l.date} | ${l.catName} | ${getSub(l.subId)} ${details} ${isFailed}</option>`;
+        }).join('');
+
+        sel.innerHTML = opts;
+    };
+
+    window.autoFillExamTitle = function() {
+        let sel = $('aiExRelatedLog');
+        let titleInput = $('aiExTitle');
+        let subSel = $('aiExSubject');
         
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
-            
-            const maxPages = Math.min(pdf.numPages, 5);
-            let extractedText = '';
-            
-            // Extract text
-            for(let i = 1; i <= maxPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const strings = textContent.items.map(item => item.str);
-                extractedText += strings.join(' ') + '\n';
-            }
-
-            let promptPayload = null;
-            const systemPrompt = "أنت معلم تربوي وخبير في صياغة الاختبارات. قم بتوليد 5 أسئلة من المنهج المرفق لتختبر فهم الطالب. يجب أن يكون الرد عبارة عن مصفوفة JSON صالحة تماماً فقط.";
-
-            if (extractedText.trim().length > 100) {
-                $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-bolt fa-spin"></i> تم العثور على نصوص! جاري التوليد السريع...';
-                
-                const promptText = `
-                بناءً على النص التالي، قم بتوليد 5 أسئلة لاختبار فهم الطالب باللغة العربية.
-                الصيغة المطلوبة JSON مصفوفة:
-                [
-                  {"type": "mcq", "question": "السؤال", "options": ["خيار1","خيار2","خيار3","خيار4"], "correctAnswer": "الإجابة الصحيحة"}
-                ]
-                الأنواع المسموحة في حقل type: 
-                1. mcq (خيارات متعددة) 
-                2. tf (صح وخطأ - مصفوفة options يجب أن تكون ["صح", "خطأ"]) 
-                3. direct (سؤال مباشر - مصفوفة options فارغة [])
-                
-                النص المدروس:
-                ${extractedText.substring(0, 10000)}
-                `;
-                
-                promptPayload = { 
-                    systemInstruction: { parts: [{ text: systemPrompt }] },
-                    contents: [{ role: "user", parts: [{text: promptText}] }], 
-                    generationConfig: { responseMimeType: "application/json" } 
-                };
-            } 
-            else {
-                $('aiLoadingIndicator').innerHTML = '<i class="fa-solid fa-camera fa-spin"></i> الملف صور، جاري المسح الضوئي...';
-                let imageParts = [];
-                for(let i = 1; i <= Math.min(maxPages, 2); i++) {
-                    const page = await pdf.getPage(i);
-                    const viewport = page.getViewport({ scale: 1.0 });
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                    const base64Img = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
-                    imageParts.push({ inlineData: { mimeType: "image/jpeg", data: base64Img } });
-                }
-                
-                const promptText = `استخرج 5 أسئلة من صور هذا المنهج بصيغة JSON مصفوفة تحتوي على (type, question, options, correctAnswer) بنفس شروط الأنواع (mcq, tf, direct).`;
-                
-                promptPayload = { 
-                    systemInstruction: { parts: [{ text: systemPrompt }] },
-                    contents: [{ role: "user", parts: [{ text: promptText }, ...imageParts] }], 
-                    generationConfig: { responseMimeType: "application/json" } 
-                };
-            }
-
-            await callGeminiAPI(promptPayload);
-            
-        } catch (e) {
-            console.error("System Error: ", e);
-            showToast('خطأ في معالجة الملف: ' + e.message, 'bg-error');
-        } finally {
-            $('aiLoadingIndicator').style.display = 'none';
-            event.target.value = ''; 
+        if (sel.value && sel.options[sel.selectedIndex].dataset.info) {
+            let info = JSON.parse(decodeURIComponent(sel.options[sel.selectedIndex].dataset.info));
+            titleInput.value = `اختبار قياس: ${info.text}`;
+            if(subSel && info.subId) subSel.value = info.subId;
+        } else {
+            titleInput.value = '';
         }
     };
 
-    async function callGeminiAPI(payload) {
-        $('aiLoadingIndicator').style.display = 'block';
-        $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-magnifying-glass fa-spin"></i> جاري الاتصال بخوادم الذكاء الاصطناعي...`;
-        
-        // قائمة بجميع أسماء النماذج الرسمية من جوجل (الأحدث فالأقدم).
-        // الكود سيقوم بتجربتها واحداً تلو الآخر تلقائياً حتى يجد النموذج المتوافق مع مفتاحك ومنطقتك.
-        const modelsToTry = [
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-pro-latest',
-            'gemini-1.5-flash-002',
-            'gemini-1.5-flash-001',
-            'gemini-1.5-flash',
-            'gemini-1.5-pro',
-            'gemini-2.5-flash-preview-09-2025',
-            'gemini-pro'
-        ];
-        
-        let lastError = null;
-
-        for (let model of modelsToTry) {
-            try {
-                $('aiLoadingIndicator').innerHTML = `<i class="fa-solid fa-robot fa-spin"></i> جاري توليد الأسئلة عبر (${model})...`;
-                
-                // تجهيز نسخة من البيانات تناسب النموذج الحالي
-                let currentPayload = JSON.parse(JSON.stringify(payload));
-                
-                // نموذج gemini-pro القديم لا يدعم بعض الإعدادات المتقدمة
-                if (model === 'gemini-pro') {
-                    delete currentPayload.systemInstruction;
-                    delete currentPayload.generationConfig;
-                    if (payload.systemInstruction && payload.systemInstruction.parts[0].text) {
-                        currentPayload.contents[0].parts.unshift({
-                            text: "التعليمات: " + payload.systemInstruction.parts[0].text + "\n\n"
-                        });
-                    }
-                    currentPayload.contents[0].parts = currentPayload.contents[0].parts.filter(p => p.text);
-                    if(currentPayload.contents[0].parts.length === 0) {
-                        throw new Error("تخطي: النموذج القديم لا يدعم تحليل الصور.");
-                    }
-                }
-
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(currentPayload)
-                });
-
-                const result = await response.json();
-                
-                if (result.error) {
-                    throw new Error(result.error.message);
-                }
-
-                let responseText = result.candidates[0].content.parts[0].text;
-                
-                // تنظيف الاستجابة من علامات Markdown لتجنب أخطاء قراءة JSON
-                responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-                
-                // محاولة عزل مصفوفة الـ JSON إذا كان هناك نص إضافي
-                let jsonStartIndex = responseText.indexOf('[');
-                let jsonEndIndex = responseText.lastIndexOf(']');
-                if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
-                    responseText = responseText.substring(jsonStartIndex, jsonEndIndex + 1);
-                }
-
-                let generatedQuestions = [];
-                try {
-                    generatedQuestions = JSON.parse(responseText);
-                } catch (parseErr) {
-                    console.error("JSON Error:", responseText);
-                    throw new Error("رد الذكاء الاصطناعي لم يكن بصيغة JSON صحيحة.");
-                }
-
-                generatedQuestions.forEach(q => {
-                    window.draftExamQuestions.push({
-                        type: q.type || 'direct',
-                        question: q.question || 'سؤال بدون نص',
-                        options: q.options || ['', '', '', ''],
-                        correctAnswer: q.correctAnswer || ''
-                    });
-                });
-
-                renderDraftQuestions();
-                showToast(`تم استخراج الأسئلة بنجاح عبر (${model})!`, 'bg-success');
-                return; // النجاح: خروج من الدالة
-
-            } catch (err) {
-                lastError = err;
-                console.warn(`فشل النموذج ${model}:`, err.message);
-                // الانتظار قليلاً قبل تجربة النموذج التالي
-                await new Promise(r => setTimeout(r, 1000));
-            }
-        }
-        
-        throw new Error(`فشل التوليد بجميع النماذج. الخطأ الأخير: ${lastError?.message}`);
-    }
-
-    // 3. إدارة مسودة الأسئلة في واجهة الإدارة
+    // 3. إدارة مسودة الأسئلة في واجهة الإدارة (Manual Only)
     window.addManualDraftQuestion = function() {
         window.draftExamQuestions.push({ type: 'direct', question: '', options: ['', '', '', ''], correctAnswer: '' });
         renderDraftQuestions();
@@ -1673,7 +1547,7 @@
     function renderDraftQuestions() {
         let container = $('aiQuestionsContainer');
         if(window.draftExamQuestions.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem;">لم يتم إضافة أسئلة بعد. ارفع ملف PDF أو أضف يدوياً.</div>';
+            container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem; background:#f8fafc; border-radius:8px;">ابدأ بإضافة الأسئلة يدوياً عبر الزر أعلاه.</div>';
             return;
         }
 
@@ -1718,6 +1592,8 @@
     // 4. حفظ الاختبار وإرساله
     window.saveAiExam = function() {
         let sId = v('aiExStudent'), subId = v('aiExSubject'), title = v('aiExTitle'), status = v('aiExStatus');
+        let relatedLogId = v('aiExRelatedLog'); // السجل المرتبط
+        
         if(!sId || !subId || !title) return showToast('أكمل بيانات الاختبار الأساسية (الطالب، المادة، العنوان)', 'bg-error');
 
         let validQuestions = [];
@@ -1731,17 +1607,18 @@
         if(validQuestions.length === 0) return showToast('يجب وجود سؤال واحد صحيح على الأقل', 'bg-error');
 
         db.aiExams.push({
-            id: generateId(), sId, subId, title, questions: validQuestions, status,
+            id: generateId(), sId, subId, relatedLogId, title, questions: validQuestions, status,
             score: null, maxScore: validQuestions.length, 
             isoDate: getTodayIso(), date: new Date().toLocaleDateString('ar-SA')
         });
 
         saveDb(); 
         $('aiExTitle').value = ''; 
+        $('aiExRelatedLog').value = '';
         window.draftExamQuestions = []; 
         renderDraftQuestions();
         renderAdminAiExams(); 
-        showToast('تم اعتماد وحفظ الاختبار وإرساله للطالب', 'bg-success');
+        showToast('تم اعتماد الاختبار بنجاح وإرساله للطالب', 'bg-success');
     };
 
     function renderAdminAiExams() {
@@ -1779,7 +1656,7 @@
                         </div>
                     ` : ''}
 
-                    ${ex.status === 'submitted' ? `<button class="btn btn-purple btn-small" style="margin-top:10px;" onclick="openGradeExam('${ex.id}')"><i class="fa-solid fa-check-to-slot"></i> المراجعة والتصحيح (آلي ويدوي)</button>` : ''}
+                    ${ex.status === 'submitted' ? `<button class="btn btn-purple btn-small" style="margin-top:10px;" onclick="openGradeExam('${ex.id}')"><i class="fa-solid fa-check-to-slot"></i> المراجعة وتحديد مسار الطالب</button>` : ''}
                     ${ex.status === 'graded' ? `<div style="margin-top:10px; font-size:0.85rem; color:var(--secondary); font-weight:bold;"><i class="fa-solid fa-check"></i> تم التقييم ورصد الدرجة بنجاح.</div>` : ''}
                 </div>
             `;
@@ -1792,7 +1669,7 @@
         if(ex) { ex.status = newStatus; saveDb(); showToast('تم تغيير حالة قفل الاختبار', 'bg-success'); renderAdminAiExams(); }
     };
 
-    // 5. التصحيح الآلي والمراجعة من قبل المدير
+    // 5. التصحيح الآلي والمراجعة من قبل المدير (Study Loop Logic)
     window.openGradeExam = function(id) {
         let ex = db.aiExams.find(x => x.id === id); if(!ex) return;
         $('gradeExamId').value = id;
@@ -1835,24 +1712,55 @@
         $('gradeAiExamModal').style.display = 'flex';
     };
 
-    window.submitAiExamGrade = function() {
+    window.submitAiExamGrade = async function(decision) {
         let id = $('gradeExamId').value; let ex = db.aiExams.find(x => x.id === id);
         let score = parseFloat(v('gradeScore')), max = parseFloat(v('gradeMax'));
         if(isNaN(score) || isNaN(max)) return showToast('أدخل الدرجات بشكل صحيح', 'bg-error');
         
+        if (decision === 'fail_re_study') {
+            if(!(await window.customConfirm('هل أنت متأكد من رسوب الطالب؟ سيتم إنشاء طلب إعادة مذاكرة جديد له ولن تُحتسب هذه المحاولة كنقطة قوة.'))) return;
+        }
+
         ex.score = score; ex.maxScore = max; ex.status = 'graded';
         
+        // 1. تسجيل النتيجة في سجل الدرجات العام
         db.exams.push({ 
-            id: generateId(), sId: ex.sId, subId: ex.subId, typeId: 'مراجعة AI للوالد', sourceId: 'الذكاء الاصطناعي (داخلي)', 
+            id: generateId(), sId: ex.sId, subId: ex.subId, typeId: 'مراجعة الوالد للدرس', sourceId: 'تقييم داخلي', 
             date: getTodayIso(), isoDate: getTodayIso(), score: score, max: max 
         });
 
+        // 2. Study Loop Engine (دورة إعادة المذاكرة)
+        if (ex.relatedLogId) {
+            // البحث عن السجل الأصلي
+            let originalLog = db.harvest.find(x => x.id === ex.relatedLogId) || 
+                              db.study.find(x => x.id === ex.relatedLogId) || 
+                              db.review.find(x => x.id === ex.relatedLogId);
+            
+            if (originalLog) {
+                if (decision === 'fail_re_study') {
+                    // وسم السجل القديم بأنه مرفوض/يحتاج إعادة
+                    originalLog.needsRestudy = true;
+                    
+                    // إنشاء سجل جديد إجباري للطالب في قائمة "حصاد/مذاكرة" ليقوم به
+                    let newLog = { ...originalLog, id: generateId(), date: getTodayIso(), isoDate: getTodayIso(), isMandatoryRestudy: true, originalLogId: originalLog.id };
+                    
+                    // يوضع في قسم "المراجعة" كإلزام
+                    db.review.push(newLog);
+                    showToast('تم التقييم. تم إرسال أمر إعادة مذاكرة إجباري للطالب!', 'bg-warning');
+                } else {
+                    originalLog.needsRestudy = false; // نجح وتم إغلاق الحلقة
+                    showToast('تم التقييم بنجاح. الطالب استوعب الدرس!', 'bg-success');
+                }
+            }
+        } else {
+            showToast('تم التقييم بنجاح', 'bg-success');
+        }
+
         saveDb(); closeModal('gradeAiExamModal'); renderAdminAiExams();
-        showToast('تم تقييم الاختبار وتوثيقه في السجل العام بنجاح!', 'bg-success');
     };
 
     // ==========================================
-    // --- AI PARENT EXAMS LOGIC (STUDENT) ---
+    // --- MANUAL EXAMS LOGIC (STUDENT) ---
     // ==========================================
     function renderStudentAiExams() {
         if(!$('std-aiexams').classList.contains('active')) return;
@@ -1951,7 +1859,7 @@
         
         ex.status = 'submitted';
         saveDb(); renderStudentAiExams();
-        showToast('تم تسليم الاختبار بنجاح، بانتظار تقييم الوالد.', 'bg-success');
+        showToast('تم تسليم الاختبار بنجاح، بانتظار التقييم.', 'bg-success');
     };
 
     // --- Student Logic (Study Session & XP) ---
@@ -2051,7 +1959,7 @@
         if($('filterActSubjectLog')) $('filterActSubjectLog').innerHTML = filterSubOpts;
     }
 
-    // دالة جديدة لرسم جدول سجل المذاكرة للطالب مع الفلاتر
+    // دالة جديدة لرسم جدول سجل المذاكرة للطالب مع الفلاتر وعرض إعادة المذاكرة
     window.renderStdStudyLogsTable = function() {
         if(!$('tableStdStudyLogs')) return;
         let sId = window.currentUser.id;
@@ -2069,13 +1977,28 @@
 
         logs.sort((a,b) => new Date(b.isoDate || b.date) - new Date(a.isoDate || a.date));
 
-        let html = '<thead><tr><th>التاريخ</th><th>النوع</th><th>المادة</th><th>التفاصيل</th></tr></thead><tbody>';
+        let html = '<thead><tr><th>التاريخ</th><th>النوع</th><th>المادة</th><th>التفاصيل</th><th>حالة المذاكرة</th></tr></thead><tbody>';
         if(logs.length === 0) {
-            html += '<tr><td colspan="4" style="text-align:center; color: var(--text-light);">لا توجد سجلات مطابقة للبحث</td></tr>';
+            html += '<tr><td colspan="5" style="text-align:center; color: var(--text-light);">لا توجد سجلات مطابقة للبحث</td></tr>';
         } else {
             html += logs.map(l => {
                 let details = l.catName === 'حصاد دوري' ? `حصة ${l.period} - ${l.lesson} (ص ${l.start}-${l.end})` : `من ص ${l.start} إلى ص ${l.end}`;
-                return `<tr><td>${l.isoDate || l.date}</td><td><span class="badge ${l.color}">${l.catName}</span></td><td>${getSub(l.subId)}</td><td>${details}</td></tr>`;
+                
+                // Study Loop Logic in Table
+                let statusBadge = '<span class="badge badge-dark">مكتملة</span>';
+                if (l.needsRestudy) {
+                    statusBadge = '<span class="badge badge-red">🔴 تتطلب إعادة مذاكرة</span>';
+                } else if (l.isMandatoryRestudy) {
+                    statusBadge = '<span class="badge badge-warning">🔄 جلسة إعادة استدراك</span>';
+                }
+
+                return `<tr>
+                    <td>${l.isoDate || l.date}</td>
+                    <td><span class="badge ${l.color}">${l.catName}</span></td>
+                    <td>${getSub(l.subId)}</td>
+                    <td>${details}</td>
+                    <td>${statusBadge}</td>
+                </tr>`;
             }).join('');
         }
         $('tableStdStudyLogs').innerHTML = html + '</tbody>';
@@ -2132,7 +2055,13 @@
         } else {
             db.review.push(logData);
         }
-        // تم إضافة renderStdStudyLogsTable() هنا لتحديث الجدول فوراً بعد الحفظ
+        
+        // إغلاق أي جلسات إعادة مذاكرة سابقة لنفس المادة (Study Loop Check)
+        let relatedRestudy = db.review.find(r => r.sId === window.currentUser.id && r.subId === subId && r.isMandatoryRestudy && r.needsRestudy !== false);
+        if(relatedRestudy) {
+            relatedRestudy.needsRestudy = false; // تم إغلاقها
+        }
+
         saveDb(); updateStudentDashboardStats(); renderStdStudyLogsTable(); showToast('تم حفظ الإنجاز بنجاح!', 'bg-success');
         $('logStart').value = ''; $('logEnd').value = ''; $('logLesson').value = ''; $('logPeriod').value = '';
     };
@@ -2223,7 +2152,7 @@
         if($('adminLogsStudent')) { let current = $('adminLogsStudent').value; $('adminLogsStudent').innerHTML = stOpts; if(current) $('adminLogsStudent').value = current; }
         
         if($('exStudent')) filterSubjectsByStudent('exStudent', 'exSubject');
-        if($('aiExStudent')) filterSubjectsByStudent('aiExStudent', 'aiExSubject');
+        if($('aiExStudent')) { filterSubjectsByStudent('aiExStudent', 'aiExSubject'); loadStudentStudyLogsForExam(); }
 
         if($('exType')) $('exType').innerHTML = db.settings.examTypes.map(t => `<option value="${t}">${t}</option>`).join('');
         if($('exSource')) $('exSource').innerHTML = db.settings.examSources.map(s => `<option value="${s}">${s}</option>`).join('');
@@ -2470,7 +2399,7 @@
         // Combine all scored exams for GPA and Chart
         let allScoredExams = [
             ...myExams,
-            ...myAiExams.map(e => ({ subId: e.subId, score: e.score, max: e.maxScore, typeId: 'مراجعة AI' }))
+            ...myAiExams.map(e => ({ subId: e.subId, score: e.score, max: e.maxScore, typeId: 'مراجعة وتقييم الفهم' }))
         ];
 
         let avg = allScoredExams.length ? (allScoredExams.reduce((sum, ex) => sum + (ex.score/ex.max), 0) / allScoredExams.length) * 100 : 0;
@@ -2487,7 +2416,7 @@
         $(pfx+'XP').innerText = xpTotal;
         $(pfx+'ExamsCount').innerText = allScoredExams.length;
 
-        // --- Smart Summary Generation ---
+        // --- Smart Summary Generation (بدون ذكاء اصطناعي، باستخدام المنطق البرمجي) ---
         let summaryHtml = '';
         if (avg >= 95) {
             summaryHtml += `يُظهر الطالب <b>${st.name}</b> تفوقاً أكاديمياً استثنائياً، حيث يعكس معدله التراكمي المرتفع جداً (${avg.toFixed(1)}%) التزاماً عالياً وحرصاً شديداً على التفوق وإتقان المهارات. `;
@@ -2583,7 +2512,7 @@
                 combinedExamsTable += `<tr><td>${e.date}</td><td style="font-weight:bold;">${getSub(e.subId)}</td><td>${e.typeId} <span style="color:#64748b; font-size:0.8rem;">(${e.sourceId})</span></td><td style="font-weight:bold; color:var(--primary);">${e.score} / ${e.max}</td></tr>`;
             });
             myAiExams.forEach(e => {
-                combinedExamsTable += `<tr><td>${e.date}</td><td style="font-weight:bold;">${getSub(e.subId)}</td><td>${e.title} <span style="color:var(--purple); font-size:0.8rem;">(مراجعة ذكية AI)</span></td><td style="font-weight:bold; color:var(--purple);">${e.score} / ${e.maxScore}</td></tr>`;
+                combinedExamsTable += `<tr><td>${e.date}</td><td style="font-weight:bold;">${getSub(e.subId)}</td><td>${e.title} <span style="color:var(--purple); font-size:0.8rem;">(مراجعة وفحص مستوى)</span></td><td style="font-weight:bold; color:var(--purple);">${e.score} / ${e.maxScore}</td></tr>`;
             });
         }
         $(pfx+'TableExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الاختبار / مقياس الأداء</th><th>الدرجة</th></tr></thead><tbody>${combinedExamsTable}</tbody>`;
@@ -2598,7 +2527,12 @@
         $(pfx+'TableStudyOnly').innerHTML = `<thead><tr><th>التاريخ</th><th>تصنيف النشاط</th><th>المادة</th><th>نطاق المتابعة</th></tr></thead><tbody>` + 
             (allStudyLogs.length ? allStudyLogs.map(h => {
                 let details = h.logType === 'حصاد دوري' ? `حصة ${h.period} - ${h.lesson} (ص ${h.start} إلى ${h.end})` : `تغطية من ص ${h.start} إلى ص ${h.end}`;
-                return `<tr><td>${h.isoDate || h.date}</td><td style="color:${h.color}; font-weight:bold;">${h.logType}</td><td style="font-weight:bold;">${getSub(h.subId)}</td><td>${details}</td></tr>`;
+                
+                let loopStatus = '';
+                if(h.needsRestudy) loopStatus = '<span style="color:red; font-size:0.75rem; display:block;">🔴 (يحتاج إعادة مذاكرة)</span>';
+                else if(h.isMandatoryRestudy) loopStatus = '<span style="color:orange; font-size:0.75rem; display:block;">🔄 (جلسة استدراكية)</span>';
+                
+                return `<tr><td>${h.isoDate || h.date}</td><td style="color:${h.color}; font-weight:bold;">${h.logType}</td><td style="font-weight:bold;">${getSub(h.subId)}</td><td>${details} ${loopStatus}</td></tr>`;
             }).join('') : `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">لا توجد سجلات متابعة مسجلة ضمن التصنيفات المحددة</td></tr>`) + `</tbody>`;
             
         let myAct = db.activities.filter(dFilter);
