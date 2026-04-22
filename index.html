@@ -127,10 +127,12 @@
         .student-exam-q label:hover { background: #f1f5f9; }
         .student-exam-q input[type="radio"] { width: auto; transform: scale(1.2); cursor: pointer; }
 
-        /* Math Toolbar */
-        .math-toolbar { background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap; border: 1px solid var(--border); align-items: center; }
-        .math-btn { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-family: monospace; font-weight: bold; transition: 0.2s; }
-        .math-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        /* Comprehensive Math Toolbar */
+        .math-toolbar { background: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap; border: 1px solid #cbd5e1; align-items: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .math-toolbar-title { width: 100%; font-size: 0.85rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px;}
+        .math-btn { background: white; border: 1px solid #94a3b8; color: var(--dark); border-radius: 6px; padding: 5px 12px; cursor: pointer; font-family: 'Times New Roman', serif; font-weight: bold; font-size: 1.1rem; transition: 0.2s; }
+        .math-btn:hover { background: var(--primary); color: white; border-color: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .live-math-preview { min-height: 40px; padding: 10px; background: #fff; border: 2px dashed var(--secondary); border-radius: 8px; margin-top: 10px; color: var(--dark); display: none; align-items: center; justify-content: center; font-size: 1.2rem;}
 
         /* Login Screen */
         .login-wrapper { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); width: 100%; position: absolute; top: 0; left: 0; z-index: 1000; }
@@ -492,20 +494,8 @@
                             </div>
                         </div>
 
-                        <div class="math-toolbar">
-                            <span style="font-weight:bold; color:var(--dark); font-size:0.85rem; display:flex; align-items:center; margin-left:10px;"><i class="fa-solid fa-square-root-variable ml-1" style="color:var(--primary);"></i> أدوات الرياضيات:</span>
-                            <button class="math-btn" onclick="insertMathString('$$\\frac{ البسط }{ المقام }$$')" title="كسر">a/b</button>
-                            <button class="math-btn" onclick="insertMathString('$$x^{ 2 }$$')" title="أس/قوة">x²</button>
-                            <button class="math-btn" onclick="insertMathString('$$\\sqrt{ x }$$')" title="جذر">√x</button>
-                            <button class="math-btn" onclick="insertMathString('$$\\int_{a}^{b}$$')" title="تكامل">∫</button>
-                            <button class="math-btn" onclick="insertMathString('$$\\sum$$')" title="مجموع">Σ</button>
-                            <button class="math-btn" onclick="insertMathString('$$\\pi$$')" title="باي">π</button>
-                            <button class="math-btn" onclick="insertMathString('$$\\theta$$')" title="ثيتا">θ</button>
-                            <button class="math-btn" onclick="insertMathString('$$\\pm$$')" title="زائد أو ناقص">±</button>
-                            <button class="math-btn" onclick="insertMathString('$$\\infty$$')" title="ما لا نهاية">∞</button>
-                            <button class="math-btn" onclick="insertMathString('$$\\approx$$')" title="تقريباً">≈</button>
-                            <span style="font-size:0.75rem; color:var(--text-light); margin-right:auto;">*ضع المؤشر في الحقل ثم اضغط على الرمز</span>
-                        </div>
+                        <!-- Mathematical Tools For Admin -->
+                        <div id="adminMathToolbarContainer"></div>
                         
                         <div id="aiQuestionsContainer">
                             <div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem; background:#f8fafc; border-radius:8px;">ابدأ بإضافة الأسئلة يدوياً أو دع الذكاء الاصطناعي يولدها لك.</div>
@@ -928,6 +918,9 @@
                 </div>
                 <p style="margin-bottom: 20px; color: var(--text-light); background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">هنا تظهر الاختبارات المصممة خصيصاً لقياس مستوى فهمك لما قمت بمذاكرته. الإجابة بدقة تجنبك إعادة المذاكرة.</p>
                 
+                <!-- Mathematical Tools For Student -->
+                <div id="studentMathToolbarContainer"></div>
+                
                 <div id="stdAiExamsList" style="display:flex; flex-direction:column; gap:20px;">
                     <!-- Exams rendered here -->
                 </div>
@@ -1106,7 +1099,6 @@
         <input type="hidden" id="gradeExamId">
         <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">راجع إجابات الطالب وقرر: هل استوعب ما تم ذاكرته أم يحتاج لإعادة المذاكرة والتسجيل من جديد؟</p>
         
-        <!-- تمت إزالة المدخلات العامة للدرجة من هنا ونقلها لأسفل -->
         <div id="gradeExamContent" style="margin-bottom: 20px;"></div>
         
         <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
@@ -1194,6 +1186,51 @@
         return "عذراً، حدث خطأ في الاتصال.";
     }
 
+    // Comprehensive Math Symbols Database
+    const mathSymbols = [
+        { label: 'كسر', tex: '$$\\frac{ }{ }$$', display: 'a/b' },
+        { label: 'أس', tex: '$$^{ }$$', display: 'x²' },
+        { label: 'جذر', tex: '$$\\sqrt{ }$$', display: '√' },
+        { label: 'جذر نوني', tex: '$$\\sqrt[n]{ }$$', display: 'ⁿ√' },
+        { label: 'ضرب', tex: '$$\\times$$', display: '×' },
+        { label: 'قسمة', tex: '$$\\div$$', display: '÷' },
+        { label: 'يساوي تقريباً', tex: '$$\\approx$$', display: '≈' },
+        { label: 'لا يساوي', tex: '$$\\neq$$', display: '≠' },
+        { label: 'أكبر من أو يساوي', tex: '$$\\geq$$', display: '≥' },
+        { label: 'أصغر من أو يساوي', tex: '$$\\leq$$', display: '≤' },
+        { label: 'باي', tex: '$$\\pi$$', display: 'π' },
+        { label: 'ثيتا', tex: '$$\\theta$$', display: 'θ' },
+        { label: 'ألفا', tex: '$$\\alpha$$', display: 'α' },
+        { label: 'بيتا', tex: '$$\\beta$$', display: 'β' },
+        { label: 'دلتا', tex: '$$\\Delta$$', display: 'Δ' },
+        { label: 'زاوية', tex: '$$\\angle$$', display: '∠' },
+        { label: 'عمودي', tex: '$$\\perp$$', display: '⊥' },
+        { label: 'موازي', tex: '$$\\parallel$$', display: '∥' },
+        { label: 'درجة', tex: '$$^{\\circ}$$', display: '°' },
+        { label: 'ينتمي', tex: '$$\\in$$', display: '∈' },
+        { label: 'لا ينتمي', tex: '$$\\notin$$', display: '∉' },
+        { label: 'اتحاد', tex: '$$\\cup$$', display: '∪' },
+        { label: 'تقاطع', tex: '$$\\cap$$', display: '∩' },
+        { label: 'تكامل', tex: '$$\\int_{ }^{ }$$', display: '∫' },
+        { label: 'مجموع', tex: '$$\\sum_{ }^{ }$$', display: 'Σ' },
+        { label: 'نهاية', tex: '$$\\lim_{x \\to \\infty}$$', display: 'lim' },
+        { label: 'مصفوفة 2x2', tex: '$$\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$$', display: '[ ]' },
+        { label: 'ما لا نهاية', tex: '$$\\infty$$', display: '∞' }
+    ];
+
+    function getMathToolbarHTML() {
+        let html = `<div class="math-toolbar"><div class="math-toolbar-title"><i class="fa-solid fa-calculator"></i> لوحة الرموز الرياضية العلمية</div>`;
+        mathSymbols.forEach(sym => {
+            html += `<button class="math-btn" onclick="insertMathString('${sym.tex.replace(/\\/g, '\\\\')}')" title="${sym.label}" type="button">${sym.display}</button>`;
+        });
+        html += `<div style="width:100%; margin-top:5px; font-size:0.75rem; color:var(--text-light);"><i class="fa-solid fa-circle-info"></i> ضع المؤشر داخل مربع النص أولاً ثم اضغط على الرمز لإدراجه.</div></div>`;
+        return html;
+    }
+
+    // Attach Math Toolbars
+    if($('adminMathToolbarContainer')) $('adminMathToolbarContainer').innerHTML = getMathToolbarHTML();
+    if($('studentMathToolbarContainer')) $('studentMathToolbarContainer').innerHTML = getMathToolbarHTML();
+
     const DEFAULT_DB = { 
         admin: { user: 'admin', pass: '12345' }, 
         settings: { examTypes: ['اختبار قصير', 'اختبار شهري', 'اختبار فصلي', 'اختبار نهائي'], examSources: ['المدرسة', 'منصة مدرستي', 'اختبار نافس', 'أخرى'] },
@@ -1213,6 +1250,45 @@
     window.myPeer = null;            
     window.localVideoStream = null;
     window.draftExamQuestions = [];
+
+    // Math Toolbar Event Listeners
+    window.lastFocusedInput = null;
+    document.addEventListener('focusin', function(e) {
+        if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            if(e.target.closest('#aiQuestionsContainer') || e.target.closest('#examForm_') || e.target.closest('.student-exam-q')) {
+                window.lastFocusedInput = e.target;
+            }
+        }
+    });
+
+    // Generic Event Listener for Live Preview updates
+    document.addEventListener('input', function(e) {
+        if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            let previewBox = e.target.parentElement.querySelector('.live-math-preview');
+            if(previewBox) {
+                previewBox.style.display = e.target.value.trim() ? 'flex' : 'none';
+                previewBox.innerHTML = e.target.value;
+                if(window.MathJax) MathJax.typesetPromise([previewBox]);
+            }
+        }
+    });
+
+    window.insertMathString = function(latexStr) {
+        if(!window.lastFocusedInput) return showToast('الرجاء وضع مؤشر الكتابة داخل حقل السؤال أو الإجابة أولاً.', 'bg-warning');
+        
+        const input = window.lastFocusedInput;
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        
+        input.value = text.substring(0, start) + latexStr + text.substring(end);
+        input.selectionStart = input.selectionEnd = start + latexStr.length;
+        input.focus();
+        
+        // Trigger change/input events so framework or UI knows it updated
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    };
 
     function $(id) { return document.getElementById(id); }
     function v(id) { return $(id) ? $(id).value.trim() : ''; }
@@ -1252,7 +1328,7 @@
     window.closeModal = function(id) { $(id).style.display = 'none'; };
     window.nav = function(viewId, el) {
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        el.classList.add('active');
+        if(el) el.classList.add('active');
         document.querySelectorAll('.section-view').forEach(s => s.classList.remove('active'));
         $(viewId).classList.add('active');
         if(window.innerWidth <= 768) $('sidebar').classList.remove('open');
@@ -1521,9 +1597,8 @@
             let cleanJson = res.replace(/```json/g, '').replace(/```/g, '').trim();
             let newQs = JSON.parse(cleanJson);
             if(Array.isArray(newQs)) {
-                // التأكد من وجود تصنيف إن لم يوفره النموذج
                 newQs.forEach(q => { if(!q.category) q.category = 'فهم'; });
-                window.draftExamQuestions = newQs.concat(window.draftExamQuestions); // إضافة الجديدة في الأعلى
+                window.draftExamQuestions = newQs.concat(window.draftExamQuestions); 
                 renderDraftQuestions();
                 showToast('تم توليد الأسئلة بنجاح ✨!', 'bg-success');
             } else {
@@ -1580,36 +1655,7 @@
         }
     };
 
-    // Math Toolbar Focus Tracking
-    window.lastFocusedInput = null;
-    document.addEventListener('focusin', function(e) {
-        if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-            if(e.target.closest('#aiQuestionsContainer') || e.target.closest('#gradeExamContent')) {
-                window.lastFocusedInput = e.target;
-            }
-        }
-    });
-
-    window.insertMathString = function(latexStr) {
-        if(!window.lastFocusedInput) return showToast('الرجاء الضغط داخل حقل السؤال أو الإجابة أولاً.', 'bg-warning');
-        
-        const input = window.lastFocusedInput;
-        const start = input.selectionStart;
-        const end = input.selectionEnd;
-        const text = input.value;
-        
-        input.value = text.substring(0, start) + latexStr + text.substring(end);
-        input.selectionStart = input.selectionEnd = start + latexStr.length;
-        input.focus();
-        
-        // محاكاة حدث onchange لكي يحفظ التعديل في المسودة
-        input.dispatchEvent(new Event('change'));
-        
-        if(window.MathJax) MathJax.typesetPromise();
-    };
-
     window.addManualDraftQuestion = function() {
-        // الإضافة في الأعلى
         window.draftExamQuestions.unshift({ type: 'direct', question: '', options: ['', '', '', ''], correctAnswer: '', category: 'فهم' });
         renderDraftQuestions();
     };
@@ -1664,6 +1710,7 @@
                     </div>
                     <div class="form-group"><label>السؤال (${i+1})</label>
                         <input type="text" value="${q.question}" onchange="updateDraftField(${i}, 'question', this.value)" placeholder="اكتب نص السؤال..." onfocus="window.lastFocusedInput = this">
+                        <div class="live-math-preview"></div>
                     </div>
                 </div>`;
                 
@@ -1671,7 +1718,7 @@
                 html += `<div class="grid-4">`;
                 for(let j=0; j<4; j++) {
                     let opt = (q.options && q.options[j]) ? q.options[j] : '';
-                    html += `<div class="form-group"><label>خيار ${j+1}</label><input type="text" value="${opt}" onchange="updateDraftOption(${i}, ${j}, this.value)" onfocus="window.lastFocusedInput = this"></div>`;
+                    html += `<div class="form-group"><label>خيار ${j+1}</label><input type="text" value="${opt}" onchange="updateDraftOption(${i}, ${j}, this.value)" onfocus="window.lastFocusedInput = this"><div class="live-math-preview"></div></div>`;
                 }
                 html += `</div>`;
             }
@@ -1681,12 +1728,11 @@
             
             html += `<div class="form-group" style="margin-top:10px;"><label style="color:var(--secondary);">${ansLabel}</label>
                 <input type="text" value="${q.correctAnswer || ''}" onchange="updateDraftField(${i}, 'correctAnswer', this.value)" placeholder="${ansPlaceholder}" style="border-color:var(--secondary);" onfocus="window.lastFocusedInput = this">
+                <div class="live-math-preview"></div>
             </div>
             </div>`;
         });
         container.innerHTML = html;
-        
-        // إعادة معالجة المعادلات الرياضية بعد الرسم
         setTimeout(() => { if(window.MathJax) MathJax.typesetPromise(); }, 100);
     }
 
@@ -1699,7 +1745,7 @@
         let validQuestions = [];
         for (let q of window.draftExamQuestions) {
             if(q.question.trim() === '') continue;
-            let cleanQ = { type: q.type, question: q.question.trim(), correctAnswer: q.correctAnswer.trim(), studentAnswer: '' };
+            let cleanQ = { type: q.type, question: q.question.trim(), correctAnswer: q.correctAnswer.trim(), studentAnswer: '', category: q.category || 'فهم' };
             if(q.type === 'mcq') cleanQ.options = q.options.map(o => o.trim());
             validQuestions.push(cleanQ);
         }
@@ -1762,7 +1808,6 @@
             `;
         });
         container.innerHTML = html;
-        
         setTimeout(() => { if(window.MathJax) MathJax.typesetPromise(); }, 100);
     }
 
@@ -1827,7 +1872,6 @@
         setTimeout(() => { if(window.MathJax) MathJax.typesetPromise(); }, 100);
     };
 
-    // دالة جديدة لتحديث إجمالي الدرجة أثناء إدخال درجات الأسئلة الفردية
     window.updateTotalGradeModal = function(numQuestions) {
         let total = 0;
         for(let i=0; i<numQuestions; i++) {
@@ -1845,7 +1889,6 @@
             if(!(await window.customConfirm('هل أنت متأكد من رسوب الطالب؟ سيتم إنشاء طلب إعادة مذاكرة جديد له ولن تُحتسب هذه المحاولة كنقطة قوة.'))) return;
         }
 
-        // حفظ درجات كل سؤال على حدة داخل الكائن
         ex.questions.forEach((q, i) => {
             q.awardedScore = parseFloat(v(`q_score_input_${i}`)) || 0;
         });
@@ -1924,7 +1967,6 @@
                     
                     <div id="examForm_${ex.id}">
                         ${ex.questions.map((q, i) => {
-                            // إظهار درجة السؤال للطالب إذا كان مصححاً
                             let qScoreBadge = '';
                             if(ex.status === 'graded' && q.awardedScore !== undefined) {
                                 qScoreBadge = `<span style="float:left; font-size: 0.85rem; background: #dcfce3; color: #15803d; padding: 4px 10px; border-radius: 20px;">الدرجة: ${q.awardedScore}</span>`;
@@ -1954,7 +1996,8 @@
                                     qHtml += `<label style="${opacityStyle}"><input type="radio" name="ans_${ex.id}_${i}" value="صح" ${isDisabled}> صح</label>`;
                                     qHtml += `<label style="${opacityStyle}"><input type="radio" name="ans_${ex.id}_${i}" value="خطأ" ${isDisabled}> خطأ</label>`;
                                 } else {
-                                    qHtml += `<textarea id="ans_${ex.id}_${i}" rows="3" placeholder="اكتب إجابتك هنا..." ${isDisabled} style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); ${opacityStyle}"></textarea>`;
+                                    qHtml += `<textarea id="ans_${ex.id}_${i}" rows="3" placeholder="اكتب إجابتك هنا..." ${isDisabled} style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); ${opacityStyle}" onfocus="window.lastFocusedInput = this"></textarea>`;
+                                    qHtml += `<div class="live-math-preview"></div>`;
                                 }
                             }
                             qHtml += `</div>`;
@@ -1967,8 +2010,6 @@
             `;
         });
         container.innerHTML = html;
-        
-        // تفعيل الـ MathJax في شاشة الطالب ليرى المعادلات بشكل صحيح
         setTimeout(() => { if(window.MathJax) MathJax.typesetPromise(); }, 100);
     }
 
@@ -2007,6 +2048,7 @@
             let res = await callGemini(prompt, sys);
             $('stdAiResponse').innerHTML = res.replace(/\n/g, '<br>');
             $('stdAiQuery').value = '';
+            setTimeout(() => { if(window.MathJax) MathJax.typesetPromise(); }, 100);
         } catch(e) {
             $('stdAiResponse').innerHTML = 'عذراً يا بطل، حدث خطأ في الاتصال، حاول مجدداً.';
         }
