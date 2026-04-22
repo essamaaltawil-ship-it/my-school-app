@@ -236,6 +236,11 @@
             .premium-a4 { padding: 10mm; width: 100%; }
         }
     </style>
+    
+    <!-- دعم الرموز والمعادلات الرياضية (MathJax) -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
     <!-- استدعاء Tailwind CSS بشكل صحيح لضمان عمل الإشعارات -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -469,8 +474,12 @@
                             <input type="text" id="aiExTitle" placeholder="مثال: مراجعة الوحدة الأولى - ص 10 إلى 15">
                         </div>
 
+                        <div style="background: #e0f2fe; padding: 10px; border-radius: 8px; font-size: 0.85rem; color: #0369a1; margin-bottom: 15px;">
+                            <i class="fa-solid fa-calculator"></i> <b>تلميح للرياضيات:</b> يمكنك كتابة المعادلات الرياضية بوضعها بين علامتي <code>$$</code>. مثال: <code>$$x^2 + y^2 = z^2$$</code> أو <code>$$\frac{1}{2}$$</code>
+                        </div>
+
                         <!-- Manual / AI Question Builder -->
-                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; margin-top:25px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; margin-top:10px;">
                             <h4 style="color: var(--dark); margin:0;">الأسئلة المُعدة للاختبار:</h4>
                             <div style="display:flex; gap:10px;">
                                 <button class="btn btn-ai btn-small" onclick="generateAiQuestions()"><i class="fa-solid fa-wand-magic-sparkles"></i> توليد ذكي ✨</button>
@@ -1077,11 +1086,12 @@
         <input type="hidden" id="gradeExamId">
         <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">راجع إجابات الطالب وقرر: هل استوعب ما تم ذاكرته أم يحتاج لإعادة المذاكرة والتسجيل من جديد؟</p>
         
+        <!-- تمت إزالة المدخلات العامة للدرجة من هنا ونقلها لأسفل -->
         <div id="gradeExamContent" style="margin-bottom: 20px;"></div>
         
         <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
             <div class="grid-2">
-                <div class="form-group"><label>الدرجة الممنوحة (من)</label><input type="number" id="gradeScore" style="color:var(--success); font-weight:bold; font-size:1.2rem;"></div>
+                <div class="form-group"><label>إجمالي الدرجة الممنوحة</label><input type="number" id="gradeScore" style="color:var(--success); font-weight:bold; font-size:1.2rem;" readonly placeholder="تُحسب آلياً"></div>
                 <div class="form-group"><label>الدرجة النهائية الكلية</label><input type="number" id="gradeMax" value="10"></div>
             </div>
             
@@ -1549,7 +1559,8 @@
     };
 
     window.addManualDraftQuestion = function() {
-        window.draftExamQuestions.push({ type: 'direct', question: '', options: ['', '', '', ''], correctAnswer: '' });
+        // تم تغيير push إلى unshift ليتم الإضافة في الأعلى
+        window.draftExamQuestions.unshift({ type: 'direct', question: '', options: ['', '', '', ''], correctAnswer: '' });
         renderDraftQuestions();
     };
 
@@ -1615,6 +1626,9 @@
             </div>`;
         });
         container.innerHTML = html;
+        
+        // إعادة معالجة المعادلات الرياضية بعد الرسم
+        setTimeout(() => { if(window.MathJax) MathJax.typesetPromise(); }, 100);
     }
 
     window.saveAiExam = function() {
@@ -1689,6 +1703,8 @@
             `;
         });
         container.innerHTML = html;
+        
+        setTimeout(() => { if(window.MathJax) MathJax.typesetPromise(); }, 100);
     }
 
     window.changeAiExamStatus = function(id, newStatus) {
@@ -1707,15 +1723,21 @@
             let isCorrect = false;
             let feedbackColor = 'var(--text)';
             let typeLabel = '';
+            let qScore = q.awardedScore !== undefined ? q.awardedScore : 0; // استرجاع الدرجة إذا كانت محفوظة
             
             if(q.type === 'mcq' || q.type === 'tf') {
                 typeLabel = q.type === 'mcq' ? '(اختيار)' : '(صح وخطأ)';
                 isCorrect = (q.studentAnswer.trim() === q.correctAnswer.trim());
-                if(isCorrect) { autoScore++; feedbackColor = 'green'; } 
+                if(isCorrect) { 
+                    feedbackColor = 'green'; 
+                    if(q.awardedScore === undefined) qScore = 1; // درجة افتراضية للإجابة الصحيحة الآلية
+                } 
                 else { feedbackColor = 'red'; }
             } else {
                 typeLabel = '(مباشر/مقالي)';
             }
+            
+            autoScore += qScore;
 
             html += `
                 <div style="margin-bottom:15px; border-bottom:1px dashed var(--border); padding-bottom:15px;">
@@ -1728,14 +1750,30 @@
                     <div style="background:#f0fdf4; padding:8px; border-radius:6px; color:#15803d; font-size:0.85rem;">
                         <b>الإجابة الصحيحة:</b> ${q.correctAnswer || '-'}
                     </div>
+
+                    <div style="margin-top: 10px; display:flex; align-items:center; gap:10px; background: #fff; padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                        <label style="margin:0; font-weight:bold; color:var(--primary);">درجة هذا السؤال:</label>
+                        <input type="number" id="q_score_input_${i}" value="${qScore}" step="0.5" style="width: 80px; margin:0; padding: 5px; border: 2px solid var(--primary); border-radius: 6px;" onchange="updateTotalGradeModal(${ex.questions.length})">
+                    </div>
                 </div>
             `;
         });
         
         $('gradeExamContent').innerHTML = html;
-        $('gradeMax').value = ex.questions.length;
+        $('gradeMax').value = ex.maxScore || ex.questions.length;
         $('gradeScore').value = autoScore; 
         $('gradeAiExamModal').style.display = 'flex';
+        
+        setTimeout(() => { if(window.MathJax) MathJax.typesetPromise(); }, 100);
+    };
+
+    // دالة جديدة لتحديث إجمالي الدرجة أثناء إدخال درجات الأسئلة الفردية
+    window.updateTotalGradeModal = function(numQuestions) {
+        let total = 0;
+        for(let i=0; i<numQuestions; i++) {
+            total += parseFloat(v(`q_score_input_${i}`)) || 0;
+        }
+        $('gradeScore').value = total;
     };
 
     window.submitAiExamGrade = async function(decision) {
@@ -1746,6 +1784,11 @@
         if (decision === 'fail_re_study') {
             if(!(await window.customConfirm('هل أنت متأكد من رسوب الطالب؟ سيتم إنشاء طلب إعادة مذاكرة جديد له ولن تُحتسب هذه المحاولة كنقطة قوة.'))) return;
         }
+
+        // حفظ درجات كل سؤال على حدة داخل الكائن
+        ex.questions.forEach((q, i) => {
+            q.awardedScore = parseFloat(v(`q_score_input_${i}`)) || 0;
+        });
 
         ex.score = score; ex.maxScore = max; ex.status = 'graded';
         
@@ -1821,8 +1864,16 @@
                     
                     <div id="examForm_${ex.id}">
                         ${ex.questions.map((q, i) => {
+                            // إظهار درجة السؤال للطالب إذا كان مصححاً
+                            let qScoreBadge = '';
+                            if(ex.status === 'graded' && q.awardedScore !== undefined) {
+                                qScoreBadge = `<span style="float:left; font-size: 0.85rem; background: #dcfce3; color: #15803d; padding: 4px 10px; border-radius: 20px;">الدرجة: ${q.awardedScore}</span>`;
+                            }
+
                             let qHtml = `<div class="student-exam-q">
-                                <div style="font-weight:bold; margin-bottom:12px; color:var(--dark); font-size:1.05rem;">س ${i+1}: ${q.question}</div>`;
+                                <div style="font-weight:bold; margin-bottom:12px; color:var(--dark); font-size:1.05rem;">
+                                    س ${i+1}: ${q.question} ${qScoreBadge}
+                                </div>`;
                             
                             let isDisabled = (!isEditable || ex.status !== 'open') ? 'disabled' : '';
                             let opacityStyle = isDisabled ? 'opacity:0.7;' : '';
@@ -1854,6 +1905,9 @@
             `;
         });
         container.innerHTML = html;
+        
+        // تفعيل الـ MathJax في شاشة الطالب ليرى المعادلات بشكل صحيح
+        setTimeout(() => { if(window.MathJax) MathJax.typesetPromise(); }, 100);
     }
 
     window.submitStudentAiExam = async function(examId) {
