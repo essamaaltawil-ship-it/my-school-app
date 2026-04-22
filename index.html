@@ -127,6 +127,11 @@
         .student-exam-q label:hover { background: #f1f5f9; }
         .student-exam-q input[type="radio"] { width: auto; transform: scale(1.2); cursor: pointer; }
 
+        /* Math Toolbar */
+        .math-toolbar { background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap; border: 1px solid var(--border); align-items: center; }
+        .math-btn { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-family: monospace; font-weight: bold; transition: 0.2s; }
+        .math-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
         /* Login Screen */
         .login-wrapper { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); width: 100%; position: absolute; top: 0; left: 0; z-index: 1000; }
         .login-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
@@ -485,6 +490,21 @@
                                 <button class="btn btn-ai btn-small" onclick="generateAiQuestions()"><i class="fa-solid fa-wand-magic-sparkles"></i> توليد ذكي ✨</button>
                                 <button class="btn btn-outline btn-small" onclick="addManualDraftQuestion()"><i class="fa-solid fa-plus"></i> إضافة يدوياً</button>
                             </div>
+                        </div>
+
+                        <div class="math-toolbar">
+                            <span style="font-weight:bold; color:var(--dark); font-size:0.85rem; display:flex; align-items:center; margin-left:10px;"><i class="fa-solid fa-square-root-variable ml-1" style="color:var(--primary);"></i> أدوات الرياضيات:</span>
+                            <button class="math-btn" onclick="insertMathString('$$\\frac{ البسط }{ المقام }$$')" title="كسر">a/b</button>
+                            <button class="math-btn" onclick="insertMathString('$$x^{ 2 }$$')" title="أس/قوة">x²</button>
+                            <button class="math-btn" onclick="insertMathString('$$\\sqrt{ x }$$')" title="جذر">√x</button>
+                            <button class="math-btn" onclick="insertMathString('$$\\int_{a}^{b}$$')" title="تكامل">∫</button>
+                            <button class="math-btn" onclick="insertMathString('$$\\sum$$')" title="مجموع">Σ</button>
+                            <button class="math-btn" onclick="insertMathString('$$\\pi$$')" title="باي">π</button>
+                            <button class="math-btn" onclick="insertMathString('$$\\theta$$')" title="ثيتا">θ</button>
+                            <button class="math-btn" onclick="insertMathString('$$\\pm$$')" title="زائد أو ناقص">±</button>
+                            <button class="math-btn" onclick="insertMathString('$$\\infty$$')" title="ما لا نهاية">∞</button>
+                            <button class="math-btn" onclick="insertMathString('$$\\approx$$')" title="تقريباً">≈</button>
+                            <span style="font-size:0.75rem; color:var(--text-light); margin-right:auto;">*ضع المؤشر في الحقل ثم اضغط على الرمز</span>
                         </div>
                         
                         <div id="aiQuestionsContainer">
@@ -1492,7 +1512,7 @@
         const prompt = `قم بتوليد 3 أسئلة متنوعة لدرس أو وحدة بعنوان "${title}".
         الإخراج يجب أن يكون بتنسيق JSON فقط عبارة عن مصفوفة كائنات (بدون أي علامات نصية إضافية).
         هيكل الكائن:
-        { "type": "mcq" أو "tf" أو "direct", "question": "نص السؤال", "options": ["خيار1", "خيار2", "خيار3", "خيار4"] (فقط لـ mcq), "correctAnswer": "الإجابة الصحيحة بدقة" }`;
+        { "type": "mcq" أو "tf" أو "direct", "question": "نص السؤال", "options": ["خيار1", "خيار2", "خيار3", "خيار4"] (فقط لـ mcq), "correctAnswer": "الإجابة الصحيحة بدقة", "category": "تصنيف السؤال (تذكر، فهم، تطبيق، تحليل، أو إبداع)" }`;
 
         const sysPrompt = "أنت خبير تربوي في صياغة الاختبارات لطلاب المدارس. أجب دائماً بصيغة مصفوفة JSON صالحة فقط.";
 
@@ -1501,7 +1521,9 @@
             let cleanJson = res.replace(/```json/g, '').replace(/```/g, '').trim();
             let newQs = JSON.parse(cleanJson);
             if(Array.isArray(newQs)) {
-                window.draftExamQuestions = window.draftExamQuestions.concat(newQs);
+                // التأكد من وجود تصنيف إن لم يوفره النموذج
+                newQs.forEach(q => { if(!q.category) q.category = 'فهم'; });
+                window.draftExamQuestions = newQs.concat(window.draftExamQuestions); // إضافة الجديدة في الأعلى
                 renderDraftQuestions();
                 showToast('تم توليد الأسئلة بنجاح ✨!', 'bg-success');
             } else {
@@ -1558,9 +1580,37 @@
         }
     };
 
+    // Math Toolbar Focus Tracking
+    window.lastFocusedInput = null;
+    document.addEventListener('focusin', function(e) {
+        if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            if(e.target.closest('#aiQuestionsContainer') || e.target.closest('#gradeExamContent')) {
+                window.lastFocusedInput = e.target;
+            }
+        }
+    });
+
+    window.insertMathString = function(latexStr) {
+        if(!window.lastFocusedInput) return showToast('الرجاء الضغط داخل حقل السؤال أو الإجابة أولاً.', 'bg-warning');
+        
+        const input = window.lastFocusedInput;
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        
+        input.value = text.substring(0, start) + latexStr + text.substring(end);
+        input.selectionStart = input.selectionEnd = start + latexStr.length;
+        input.focus();
+        
+        // محاكاة حدث onchange لكي يحفظ التعديل في المسودة
+        input.dispatchEvent(new Event('change'));
+        
+        if(window.MathJax) MathJax.typesetPromise();
+    };
+
     window.addManualDraftQuestion = function() {
-        // تم تغيير push إلى unshift ليتم الإضافة في الأعلى
-        window.draftExamQuestions.unshift({ type: 'direct', question: '', options: ['', '', '', ''], correctAnswer: '' });
+        // الإضافة في الأعلى
+        window.draftExamQuestions.unshift({ type: 'direct', question: '', options: ['', '', '', ''], correctAnswer: '', category: 'فهم' });
         renderDraftQuestions();
     };
 
@@ -1595,7 +1645,7 @@
             html += `
             <div class="q-box" id="draft_q_${i}">
                 <i class="fa-solid fa-trash q-remove" onclick="removeDraftQuestion(${i})" title="حذف السؤال"></i>
-                <div class="grid-2">
+                <div class="grid-3">
                     <div class="form-group"><label>نوع السؤال</label>
                         <select onchange="updateDraftType(${i}, this.value)">
                             <option value="direct" ${q.type==='direct'?'selected':''}>سؤال مقالي مباشر</option>
@@ -1603,8 +1653,17 @@
                             <option value="tf" ${q.type==='tf'?'selected':''}>صح أو خطأ</option>
                         </select>
                     </div>
+                    <div class="form-group"><label>تصنيف السؤال المهارى</label>
+                        <select onchange="updateDraftField(${i}, 'category', this.value)">
+                            <option value="تذكر" ${q.category==='تذكر'?'selected':''}>تذكر (حفظ ومفاهيم)</option>
+                            <option value="فهم" ${q.category==='فهم'?'selected':''}>فهم واستيعاب</option>
+                            <option value="تطبيق" ${q.category==='تطبيق'?'selected':''}>تطبيق (مسائل)</option>
+                            <option value="تحليل" ${q.category==='تحليل'?'selected':''}>تحليل واستدلال</option>
+                            <option value="إبداع" ${q.category==='إبداع'?'selected':''}>تفكير إبداعي</option>
+                        </select>
+                    </div>
                     <div class="form-group"><label>السؤال (${i+1})</label>
-                        <input type="text" value="${q.question}" onchange="updateDraftField(${i}, 'question', this.value)" placeholder="اكتب نص السؤال...">
+                        <input type="text" value="${q.question}" onchange="updateDraftField(${i}, 'question', this.value)" placeholder="اكتب نص السؤال..." onfocus="window.lastFocusedInput = this">
                     </div>
                 </div>`;
                 
@@ -1612,7 +1671,7 @@
                 html += `<div class="grid-4">`;
                 for(let j=0; j<4; j++) {
                     let opt = (q.options && q.options[j]) ? q.options[j] : '';
-                    html += `<div class="form-group"><label>خيار ${j+1}</label><input type="text" value="${opt}" onchange="updateDraftOption(${i}, ${j}, this.value)"></div>`;
+                    html += `<div class="form-group"><label>خيار ${j+1}</label><input type="text" value="${opt}" onchange="updateDraftOption(${i}, ${j}, this.value)" onfocus="window.lastFocusedInput = this"></div>`;
                 }
                 html += `</div>`;
             }
@@ -1621,7 +1680,7 @@
             let ansPlaceholder = q.type === 'tf' ? 'اكتب "صح" أو "خطأ"' : 'اكتب الخيار الصحيح هنا...';
             
             html += `<div class="form-group" style="margin-top:10px;"><label style="color:var(--secondary);">${ansLabel}</label>
-                <input type="text" value="${q.correctAnswer || ''}" onchange="updateDraftField(${i}, 'correctAnswer', this.value)" placeholder="${ansPlaceholder}" style="border-color:var(--secondary);">
+                <input type="text" value="${q.correctAnswer || ''}" onchange="updateDraftField(${i}, 'correctAnswer', this.value)" placeholder="${ansPlaceholder}" style="border-color:var(--secondary);" onfocus="window.lastFocusedInput = this">
             </div>
             </div>`;
         });
@@ -1723,14 +1782,14 @@
             let isCorrect = false;
             let feedbackColor = 'var(--text)';
             let typeLabel = '';
-            let qScore = q.awardedScore !== undefined ? q.awardedScore : 0; // استرجاع الدرجة إذا كانت محفوظة
+            let qScore = q.awardedScore !== undefined ? q.awardedScore : 0; 
             
             if(q.type === 'mcq' || q.type === 'tf') {
                 typeLabel = q.type === 'mcq' ? '(اختيار)' : '(صح وخطأ)';
                 isCorrect = (q.studentAnswer.trim() === q.correctAnswer.trim());
                 if(isCorrect) { 
                     feedbackColor = 'green'; 
-                    if(q.awardedScore === undefined) qScore = 1; // درجة افتراضية للإجابة الصحيحة الآلية
+                    if(q.awardedScore === undefined) qScore = 1; 
                 } 
                 else { feedbackColor = 'red'; }
             } else {
@@ -1738,10 +1797,11 @@
             }
             
             autoScore += qScore;
+            let catBadge = q.category ? `<span class="badge badge-purple" style="float:left;">${q.category}</span>` : '';
 
             html += `
                 <div style="margin-bottom:15px; border-bottom:1px dashed var(--border); padding-bottom:15px;">
-                    <div style="font-weight:bold; color:var(--dark); margin-bottom:5px;">س ${i+1} ${typeLabel}: ${q.question}</div>
+                    <div style="font-weight:bold; color:var(--dark); margin-bottom:5px;">س ${i+1} ${typeLabel}: ${q.question} ${catBadge}</div>
                     
                     <div style="background:#e0f2fe; padding:10px; border-radius:6px; color:#0369a1; font-size:0.95rem; margin-bottom:5px; border-right:4px solid ${feedbackColor};">
                         <b>إجابة الطالب:</b> ${q.studentAnswer || '<i>لم يُجب</i>'}
@@ -1869,10 +1929,12 @@
                             if(ex.status === 'graded' && q.awardedScore !== undefined) {
                                 qScoreBadge = `<span style="float:left; font-size: 0.85rem; background: #dcfce3; color: #15803d; padding: 4px 10px; border-radius: 20px;">الدرجة: ${q.awardedScore}</span>`;
                             }
+                            
+                            let catBadge = q.category ? `<span style="font-size: 0.75rem; color: var(--purple); border: 1px solid var(--purple); padding: 2px 6px; border-radius: 4px; margin-right: 8px;">${q.category}</span>` : '';
 
                             let qHtml = `<div class="student-exam-q">
                                 <div style="font-weight:bold; margin-bottom:12px; color:var(--dark); font-size:1.05rem;">
-                                    س ${i+1}: ${q.question} ${qScoreBadge}
+                                    س ${i+1}: ${q.question} ${catBadge} ${qScoreBadge}
                                 </div>`;
                             
                             let isDisabled = (!isEditable || ex.status !== 'open') ? 'disabled' : '';
