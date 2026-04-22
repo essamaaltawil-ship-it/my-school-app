@@ -75,6 +75,8 @@
         .btn-warning { background: var(--warning); color: white; }
         .btn-purple { background: var(--purple); color: white; }
         .btn-purple:hover { background: #7c3aed; }
+        .btn-ai { background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color: white; box-shadow: 0 0 15px rgba(139, 92, 246, 0.3); }
+        .btn-ai:hover { transform: scale(1.02); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
         .btn-outline:hover { background: #f1f5f9; }
         .btn-small { padding: 6px 12px; font-size: 0.85rem; border-radius: 6px; }
@@ -277,7 +279,7 @@
             <a class="nav-link" onclick="nav('admin-reports', this)"><i class="fa-solid fa-file-invoice"></i> التقرير الشامل</a>
             <hr style="border:none; border-top:1px solid rgba(255,255,255,0.05); margin: 10px 20px;">
             <a class="nav-link" onclick="nav('admin-permissions', this)" style="color:#fbbf24;"><i class="fa-solid fa-user-lock"></i> صلاحيات الطلاب</a>
-            <a class="nav-link" onclick="nav('admin-aiexams', this)" style="color:#c084fc;"><i class="fa-solid fa-file-circle-question"></i> اختبارات ومراجعة الوالد</a>
+            <a class="nav-link" onclick="nav('admin-aiexams', this)" style="color:#c084fc;"><i class="fa-solid fa-file-circle-question"></i> اختبارات ومراجعة الوالد ✨</a>
             <a class="nav-link" onclick="nav('admin-settings', this)"><i class="fa-solid fa-gear"></i> الإعدادات الأكاديمية</a>
         </div>
 
@@ -287,7 +289,7 @@
             <a class="nav-link" id="navStdStudy" onclick="nav('std-study', this)"><i class="fa-solid fa-book-open"></i> تسجيل المذاكرة</a>
             <a class="nav-link" id="navStdActivities" onclick="nav('std-activities', this)"><i class="fa-solid fa-medal"></i> الأنشطة والإثراءات</a>
             <a class="nav-link" id="navStdAiExams" onclick="nav('std-aiexams', this)" style="color:#c084fc; display:none;"><i class="fa-solid fa-file-circle-question"></i> اختبارات الوالد</a>
-            <a class="nav-link" id="navStdReports" onclick="nav('std-reports', this)" style="display:none;"><i class="fa-solid fa-file-invoice"></i> تقريري الشامل</a>
+            <a class="nav-link" id="navStdReports" onclick="nav('std-reports', this)" style="display:none;"><i class="fa-solid fa-file-invoice"></i> تقريري الشامل ✨</a>
         </div>
 
         <div class="sidebar-footer">
@@ -439,16 +441,16 @@
                 </div>
             </div>
 
-            <!-- Admin AI Exams (Now: Study Loop Exams) -->
+            <!-- Admin AI Exams (Now powered by Gemini) -->
             <div id="admin-aiexams" class="section-view">
-                <h2 class="section-title"><i class="fa-solid fa-file-circle-question" style="color:var(--purple);"></i> اختبارات ومراجعة الوالد (المرتبطة بالمذاكرة)</h2>
+                <h2 class="section-title"><i class="fa-solid fa-file-circle-question" style="color:var(--purple);"></i> اختبارات ومراجعة الوالد الذكية ✨</h2>
                 
                 <div class="grid-2">
                     <!-- Create Exam -->
                     <div class="card" style="border-top: 4px solid var(--purple);">
                         <h3 style="margin-bottom: 15px; color: var(--purple);"><i class="fa-solid fa-link"></i> إعداد اختبار للتأكد من الفهم</h3>
                         <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:15px;">
-                            اختر الطالب، ثم حدد السجل المعين (المذاكرة أو المراجعة السابقة) لتربط الاختبار به لقياس فهمه الحقيقي.
+                            اختر الطالب، ثم حدد السجل المعين (المذاكرة أو المراجعة السابقة) لتربط الاختبار به لقياس فهمه الحقيقي. يمكنك توليد الأسئلة آلياً باستخدام الذكاء الاصطناعي.
                         </p>
                         
                         <div class="form-group">
@@ -459,23 +461,25 @@
                         <div class="form-group">
                             <label>2. سجل المذاكرة المرتبط به الاختبار</label>
                             <select id="aiExRelatedLog" onchange="autoFillExamTitle()"><option value="">-- اختر سجل المذاكرة --</option></select>
-                            <!-- تمت إضافة هذا الحقل المخفي لكي يحفظ النظام رقم المادة تلقائياً -->
                             <input type="hidden" id="aiExSubject">
                         </div>
                         
                         <div class="form-group">
-                            <label>3. عنوان الاختبار (يتم تعبئته تلقائياً أو تعديله)</label>
+                            <label>3. عنوان الاختبار / الموضوع</label>
                             <input type="text" id="aiExTitle" placeholder="مثال: مراجعة الوحدة الأولى - ص 10 إلى 15">
                         </div>
 
-                        <!-- Manual Question Builder -->
+                        <!-- Manual / AI Question Builder -->
                         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; margin-top:25px;">
                             <h4 style="color: var(--dark); margin:0;">الأسئلة المُعدة للاختبار:</h4>
-                            <button class="btn btn-outline btn-small" onclick="addManualDraftQuestion()"><i class="fa-solid fa-plus"></i> إضافة سؤال يدوياً</button>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn btn-ai btn-small" onclick="generateAiQuestions()"><i class="fa-solid fa-wand-magic-sparkles"></i> توليد ذكي ✨</button>
+                                <button class="btn btn-outline btn-small" onclick="addManualDraftQuestion()"><i class="fa-solid fa-plus"></i> إضافة يدوياً</button>
+                            </div>
                         </div>
                         
                         <div id="aiQuestionsContainer">
-                            <div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem; background:#f8fafc; border-radius:8px;">ابدأ بإضافة الأسئلة يدوياً عبر الزر أعلاه.</div>
+                            <div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem; background:#f8fafc; border-radius:8px;">ابدأ بإضافة الأسئلة يدوياً أو دع الذكاء الاصطناعي يولدها لك.</div>
                         </div>
                         
                         <div class="form-group" style="margin-top: 20px;">
@@ -543,7 +547,7 @@
                 </div>
             </div>
 
-            <!-- Admin Logs Management (NEW) -->
+            <!-- Admin Logs Management -->
             <div id="admin-logs" class="section-view">
                 <h2 class="section-title"><i class="fa-solid fa-book-journal-whills"></i> إدارة سجل المذاكرة والأنشطة</h2>
                 <div class="card">
@@ -568,20 +572,19 @@
                         <div class="form-group"><label>إلى تاريخ:</label><input type="date" id="repTo" onchange="generateComprehensiveReport()"></div>
                     </div>
                     
-                    <!-- التعديل الجديد: لوحة التحكم بشرائح التقرير (المدير) -->
                     <div style="margin-top: 20px; border-top: 2px dashed #bfdbfe; padding-top: 20px;">
                         <label style="color: var(--primary-dark); font-size: 1.1rem; font-weight: 800; margin-bottom: 15px; display: block;">
                             <i class="fa-solid fa-layer-group"></i> حدد الشرائح المراد تضمينها في الوثيقة:
                         </label>
                         <div class="grid-4">
                             <label class="report-slide-toggle">
-                                <div class="report-slide-title"><input type="checkbox" id="repIncSummary" checked onchange="generateComprehensiveReport()"> الخلاصة والتحليل</div>
-                                <span style="font-size: 0.8rem; color: var(--text-light);">يشمل الرادار البياني ومؤشرات الأداء.</span>
+                                <div class="report-slide-title"><input type="checkbox" id="repIncSummary" checked onchange="generateComprehensiveReport()"> الخلاصة والتحليل ✨</div>
+                                <span style="font-size: 0.8rem; color: var(--text-light);">يتضمن تقرير مدعوم بالذكاء الاصطناعي.</span>
                             </label>
                             
                             <label class="report-slide-toggle">
                                 <div class="report-slide-title"><input type="checkbox" id="repIncExams" checked onchange="generateComprehensiveReport()"> سجل القياس والدرجات</div>
-                                <span style="font-size: 0.8rem; color: var(--text-light);">يشمل درجات المدارس، اختبارات نافس، والمراجعة الداخلية.</span>
+                                <span style="font-size: 0.8rem; color: var(--text-light);">يشمل درجات المدارس، والمراجعة الداخلية.</span>
                             </label>
 
                             <div class="report-slide-toggle">
@@ -595,12 +598,10 @@
 
                             <label class="report-slide-toggle">
                                 <div class="report-slide-title"><input type="checkbox" id="repIncActivities" checked onchange="generateComprehensiveReport()"> الأنشطة والإثراءات</div>
-                                <span style="font-size: 0.8rem; color: var(--text-light);">يشمل المشاريع، واجبات منصة مدرستي، والمشاركات الصفية.</span>
+                                <span style="font-size: 0.8rem; color: var(--text-light);">الواجبات والمشاركات الصفية.</span>
                             </label>
                         </div>
                     </div>
-                    <!-- نهاية لوحة التحكم -->
-
                 </div>
 
                 <div id="repContainer" class="report-wrapper">
@@ -609,7 +610,6 @@
                     </div>
                     
                     <div class="premium-a4" id="printArea">
-                        <!-- Header -->
                         <div class="rep-header">
                             <div class="rep-header-text">
                                 المملكة العربية السعودية<br>
@@ -627,7 +627,6 @@
                         <div class="rep-title">كشف الأداء الأكاديمي والتحليل الشامل</div>
                         <div class="rep-subtitle">Comprehensive Academic & Analytical Performance Report</div>
 
-                        <!-- Student Info Band -->
                         <div class="rep-student-band">
                             <div>
                                 <div class="rep-st-name" id="repStName">اسم الطالب</div>
@@ -639,16 +638,14 @@
                             </div>
                         </div>
 
-                        <!-- تغليف الشرائح بـ Divs للتحكم بظهورها -->
-                        
                         <!-- شريحة 1: الخلاصة والتحليل -->
                         <div id="repSecSummary" class="report-section-wrapper">
                             <div class="rep-grid-top">
                                 <!-- Smart AI Summary -->
                                 <div class="rep-ai-box">
-                                    <div class="rep-ai-title"><i class="fa-solid fa-brain"></i> الخلاصة التحليلية الموجهة</div>
+                                    <div class="rep-ai-title"><i class="fa-solid fa-brain"></i> تقييم قيس التربوي الذكي ✨</div>
                                     <div class="rep-ai-text" id="repSmartSummary">
-                                        جاري التوليد...
+                                        جاري التحليل...
                                     </div>
                                 </div>
                                 
@@ -792,10 +789,23 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div style="display:flex; flex-direction: column; gap: 20px;">
+                        <!-- AI Tutor Card -->
+                        <div class="card" style="border-top: 4px solid var(--purple); background: #faf5ff;">
+                            <h3 style="margin-bottom: 15px; color: var(--purple);"><i class="fa-solid fa-robot"></i> مساعد قيس الذكي ✨</h3>
+                            <p style="font-size:0.85rem; color:var(--text-light); margin-bottom:10px;">لديك سؤال حول دروسك؟ اطرحه وسأقوم بمساعدتك بتبسيط المفهوم.</p>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="stdAiQuery" placeholder="مثال: اشرح لي الجاذبية باختصار..." style="flex:1;">
+                                <button class="btn btn-ai" onclick="askAiTutor()"><i class="fa-solid fa-paper-plane"></i></button>
+                            </div>
+                            <div id="stdAiResponse" style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; font-size: 0.95rem; border: 1px solid var(--purple); display:none; line-height:1.6;"></div>
+                        </div>
 
-                    <div class="card">
-                        <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-chart-line"></i> ملخص إنجازاتي</h3>
-                        <div class="table-responsive"><table id="stdSummaryTable"></table></div>
+                        <div class="card">
+                            <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-chart-line"></i> ملخص إنجازاتي</h3>
+                            <div class="table-responsive"><table id="stdSummaryTable"></table></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -826,7 +836,6 @@
                     
                     <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="saveStudentLog()"><i class="fa-solid fa-save"></i> حفظ في سجلي السحابي (+10 XP)</button>
                     
-                    <!-- الإضافة الجديدة: قسم عرض السجلات السابقة والفلاتر -->
                     <hr style="border:none; border-top:1px dashed var(--border); margin: 25px 0;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
                         <h3 style="color: var(--dark); margin: 0;"><i class="fa-solid fa-clock-rotate-left"></i> سجلي السابق</h3>
@@ -843,7 +852,6 @@
                         </div>
                     </div>
                     <div class="table-responsive"><table id="tableStdStudyLogs"></table></div>
-                    <!-- نهاية الإضافة -->
 
                 </div>
             </div>
@@ -883,7 +891,7 @@
                 </div>
             </div>
 
-            <!-- Student AI Exams (Now: Study Loop Exams) -->
+            <!-- Student AI Exams -->
             <div id="std-aiexams" class="section-view">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
                     <h2 class="section-title" style="color:var(--purple); margin:0;"><i class="fa-solid fa-file-circle-question"></i> اختبارات ومراجعة الوالد</h2>
@@ -896,7 +904,7 @@
                 </div>
             </div>
 
-            <!-- Student Reports (NEW) -->
+            <!-- Student Reports -->
             <div id="std-reports" class="section-view">
                 <h2 class="section-title"><i class="fa-solid fa-file-invoice"></i> تقريري الشامل</h2>
                 <div class="card" style="background: #f0fdf4; border-color: #bbf7d0;">
@@ -905,15 +913,14 @@
                         <div class="form-group"><label>إلى تاريخ:</label><input type="date" id="stdRepTo" onchange="generateStudentReport()"></div>
                     </div>
                     
-                    <!-- التعديل الجديد: لوحة التحكم بشرائح التقرير (الطالب) -->
                     <div style="margin-top: 20px; border-top: 2px dashed #bbf7d0; padding-top: 20px;">
                         <label style="color: #166534; font-size: 1.1rem; font-weight: 800; margin-bottom: 15px; display: block;">
                             <i class="fa-solid fa-layer-group"></i> حدد الشرائح المراد تضمينها في تقريرك:
                         </label>
                         <div class="grid-4">
                             <label class="report-slide-toggle" style="border-color: #bbf7d0;">
-                                <div class="report-slide-title"><input type="checkbox" id="stdRepIncSummary" checked onchange="generateStudentReport()"> الخلاصة والتحليل</div>
-                                <span style="font-size: 0.8rem; color: var(--text-light);">يشمل الرادار البياني والـ KPIs.</span>
+                                <div class="report-slide-title"><input type="checkbox" id="stdRepIncSummary" checked onchange="generateStudentReport()"> الخلاصة والتحليل ✨</div>
+                                <span style="font-size: 0.8rem; color: var(--text-light);">يتضمن تقرير مدعوم بالذكاء الاصطناعي.</span>
                             </label>
                             
                             <label class="report-slide-toggle" style="border-color: #bbf7d0;">
@@ -936,8 +943,6 @@
                             </label>
                         </div>
                     </div>
-                    <!-- نهاية لوحة التحكم -->
-
                 </div>
 
                 <div id="stdRepContainer" class="report-wrapper">
@@ -946,7 +951,6 @@
                     </div>
 
                     <div class="premium-a4" id="stdPrintArea">
-                        <!-- Header -->
                         <div class="rep-header">
                             <div class="rep-header-text">
                                 المملكة العربية السعودية<br>
@@ -964,7 +968,6 @@
                         <div class="rep-title">كشف الأداء الأكاديمي والتحليل الشامل</div>
                         <div class="rep-subtitle">Comprehensive Academic & Analytical Performance Report</div>
 
-                        <!-- Student Info Band -->
                         <div class="rep-student-band">
                             <div>
                                 <div class="rep-st-name" id="stdRepStName">اسم الطالب</div>
@@ -976,16 +979,14 @@
                             </div>
                         </div>
 
-                        <!-- تغليف الشرائح بـ Divs للتحكم بظهورها (الطالب) -->
-                        
                         <!-- شريحة 1: الخلاصة والتحليل -->
                         <div id="stdRepSecSummary" class="report-section-wrapper">
                             <div class="rep-grid-top">
                                 <!-- Smart AI Summary -->
                                 <div class="rep-ai-box">
-                                    <div class="rep-ai-title"><i class="fa-solid fa-brain"></i> الخلاصة التحليلية الموجهة</div>
+                                    <div class="rep-ai-title"><i class="fa-solid fa-brain"></i> تقييم قيس التربوي الذكي ✨</div>
                                     <div class="rep-ai-text" id="stdRepSmartSummary">
-                                        جاري التوليد...
+                                        جاري التحليل...
                                     </div>
                                 </div>
                                 
@@ -1066,7 +1067,7 @@
     </div>
 </div>
 
-<!-- Modal لتقييم الاختبار (المدير) - Study Loop Upgrade -->
+<!-- Modal لتقييم الاختبار -->
 <div id="gradeAiExamModal" class="modal-overlay">
     <div class="modal-content" style="max-width: 700px;">
         <div class="modal-header">
@@ -1084,7 +1085,6 @@
                 <div class="form-group"><label>الدرجة النهائية الكلية</label><input type="number" id="gradeMax" value="10"></div>
             </div>
             
-            <!-- Study Loop Actions -->
             <div style="margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
                 <label style="font-weight:bold; margin-bottom:10px; display:block;">القرار التعليمي للحصاد (Study Loop):</label>
                 <div style="display:flex; gap:10px;">
@@ -1124,7 +1124,6 @@
         firebaseConfig = JSON.parse(__firebase_config);
         appId = typeof __app_id !== 'undefined' ? __app_id : appId;
     } else {
-        // Fallback for local testing if needed
         firebaseConfig = {
             apiKey: "AIzaSyC0e3tQOKFNFK4od16RsWGSSPipCporeis",
             authDomain: "school-27abe.firebaseapp.com",
@@ -1135,8 +1134,35 @@
         }; 
     }
     
-    // API Key (لم يعد مستخدماً هنا لأننا ألغينا الذكاء الاصطناعي بناءً على طلبك)
+    // Gemini API Setup
     const apiKey = ""; 
+
+    async function callGemini(prompt, systemPrompt = "أنت مساعد ذكي.") {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const payload = {
+            contents: [{ parts: [{ text: prompt }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] }
+        };
+
+        let delay = 1000;
+        for (let i = 0; i < 5; i++) {
+            try {
+                const response = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                const result = await response.json();
+                if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+                    return result.candidates[0].content.parts[0].text;
+                } else if (result.error) {
+                     console.error(result.error);
+                     throw new Error("API Error");
+                }
+            } catch (e) {
+                if (i === 4) return "عذراً، حدث خطأ في الاتصال بالذكاء الاصطناعي.";
+                await new Promise(r => setTimeout(r, delay));
+                delay *= 2;
+            }
+        }
+        return "عذراً، حدث خطأ في الاتصال.";
+    }
 
     const DEFAULT_DB = { 
         admin: { user: 'admin', pass: '12345' }, 
@@ -1163,7 +1189,6 @@
     function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
     function getTodayIso() { return new Date().toISOString().split('T')[0]; }
     
-    // Custom Confirm to avoid browser alerts
     window.customConfirm = function(msg) {
         return new Promise((resolve) => {
             $('customConfirmMsg').innerText = msg;
@@ -1208,7 +1233,6 @@
     const auth = getAuth(app);
     const firestoreDb = getFirestore(app);
 
-    // Rule 3: Auth First
     const initAuth = async () => {
         try {
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -1221,10 +1245,8 @@
     initAuth();
 
     onAuthStateChanged(auth, (user) => {
-        if(!user) return; // Guard clause
+        if(!user) return;
         
-        // Rule 1: Strict Paths -> Using a collection with a specific document
-        // Path: /artifacts/{appId}/public/data/qais_system_v1/main_database
         dbRef = doc(firestoreDb, 'artifacts', appId, 'public', 'data', 'qais_system_v1', 'main_database');
         
         onSnapshot(dbRef, (docSnap) => {
@@ -1241,7 +1263,7 @@
                 
                 if (db.schools.length === 0 && (db.students.length > 0 || db.subjects.length > 0)) {
                     let defaultSchoolId = generateId();
-                    db.schools.push({ id: defaultSchoolId, name: 'المدرسة الرئيسية (سابقة)', principal: '-', vicePrincipal: '-' });
+                    db.schools.push({ id: defaultSchoolId, name: 'المدرسة الرئيسية', principal: '-', vicePrincipal: '-' });
                     needsSave = true;
                     
                     db.students.forEach(s => { if (!s.schoolId) s.schoolId = defaultSchoolId; });
@@ -1268,7 +1290,7 @@
             } else {
                 setDoc(dbRef, DEFAULT_DB).catch(console.warn);
             }
-        }, (err) => { console.warn("Snap err", err); }); // Required Error Callback
+        }, (err) => { console.warn("Snap err", err); });
     });
 
     function saveDb() { 
@@ -1340,21 +1362,20 @@
         } else {
             updateStudentDashboardStats();
             populateStudentDropdowns();
-            renderStdStudyLogsTable(); // تحديث جدول المذاكرة
-            renderStdActivitiesTable(); // تحديث جدول الأنشطة
+            renderStdStudyLogsTable();
+            renderStdActivitiesTable();
             renderStudentAiExams();
             if($('std-reports').classList.contains('active')) generateStudentReport();
         }
     }
 
-    // --- WebRTC Camera (محرك البث المطور) ---
+    // --- WebRTC Camera ---
     function startStudentCamera() {
         navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
             window.localVideoStream = stream;
             $('studentVideo').srcObject = stream;
             $('studentVideoContainer').style.display = 'block';
             
-            // تنظيف أي اتصال قديم لضمان عدم حدوث تداخل
             if (window.myPeer) { window.myPeer.destroy(); }
             
             let peerId = 'qais-v4-std-' + window.currentUser.id;
@@ -1362,19 +1383,13 @@
             
             window.myPeer.on('connection', conn => {
                 conn.on('data', data => { 
-                    // عندما يطلب المدير البث، نقوم بالاتصال به وإرسال الفيديو
                     if (data === 'request_stream' && window.localVideoStream) {
                         window.myPeer.call(conn.peer, window.localVideoStream); 
                     } 
                 });
             });
-
-            window.myPeer.on('error', err => {
-                console.warn("PeerJS Student Error:", err);
-            });
-
+            window.myPeer.on('error', err => { console.warn("PeerJS Student Error:", err); });
         }).catch(err => {
-            console.warn("Camera error", err);
             showToast('تعذر تشغيل الكاميرا، يرجى إعطاء الصلاحية للمتصفح.', 'bg-error');
         });
     }
@@ -1387,33 +1402,17 @@
 
     window.watchStudentCamera = function(studentId, studentName) {
         showToast('جاري تهيئة قناة الاتصال المباشر...', 'bg-info');
-        
-        // تدمير أي اتصال سابق لضمان بدء اتصال نظيف وجديد
-        if (window.myPeer) {
-            window.myPeer.destroy();
-            window.myPeer = null;
-        }
+        if (window.myPeer) { window.myPeer.destroy(); window.myPeer = null; }
 
-        // إنشاء معرف جديد للمدير
         window.myPeer = new Peer('qais-v4-admin-' + Math.floor(Math.random()*10000));
         
-        // 1. ننتظر حتى يكتمل اتصال المدير بسيرفر PeerJS
         window.myPeer.on('open', (id) => {
             showToast('جاري الاتصال بكاميرا الطالب...', 'bg-info');
-            
-            // 2. نقوم بطلب الاتصال بالطالب
             let conn = window.myPeer.connect('qais-v4-std-' + studentId);
-            
-            conn.on('open', () => { 
-                conn.send('request_stream'); // إرسال أمر فتح الكاميرا
-            });
-            
-            conn.on('error', () => { 
-                showToast('تعذر الوصول لبيانات الطالب', 'bg-error'); 
-            });
+            conn.on('open', () => { conn.send('request_stream'); });
+            conn.on('error', () => { showToast('تعذر الوصول لبيانات الطالب', 'bg-error'); });
         });
 
-        // 3. الاستماع لرد الطالب (عندما يرسل الفيديو)
         window.myPeer.on('call', call => {
             call.answer(); 
             call.on('stream', remoteStream => {
@@ -1424,7 +1423,6 @@
             });
         });
 
-        // معالجة الأخطاء الشائعة (مثل خروج الطالب من النظام فجأة)
         window.myPeer.on('error', err => {
             if(err.type === 'peer-unavailable') {
                 showToast('الطالب أوقف المذاكرة أو انقطع اتصاله بالإنترنت', 'bg-error');
@@ -1472,10 +1470,40 @@
     };
 
     // ==========================================
-    // --- MANUAL STUDY LOOP EXAMS LOGIC (NO AI) ---
+    // --- EXAMS LOGIC (AI & MANUAL) ---
     // ==========================================
 
-    // دالة جديدة لجلب سجلات المذاكرة الخاصة بالطالب لربطها بالاختبار
+    window.generateAiQuestions = async function() {
+        let title = v('aiExTitle');
+        if(!title) { showToast('يرجى إدخال عنوان الدرس أولاً', 'bg-warning'); return; }
+        
+        $('aiQuestionsContainer').innerHTML = '<div style="text-align:center; padding:20px; color:var(--purple);"><i class="fa-solid fa-spinner fa-spin"></i> جاري استدعاء المعلم الذكي لتوليد الأسئلة...</div>';
+
+        const prompt = `قم بتوليد 3 أسئلة متنوعة لدرس أو وحدة بعنوان "${title}".
+        الإخراج يجب أن يكون بتنسيق JSON فقط عبارة عن مصفوفة كائنات (بدون أي علامات نصية إضافية).
+        هيكل الكائن:
+        { "type": "mcq" أو "tf" أو "direct", "question": "نص السؤال", "options": ["خيار1", "خيار2", "خيار3", "خيار4"] (فقط لـ mcq), "correctAnswer": "الإجابة الصحيحة بدقة" }`;
+
+        const sysPrompt = "أنت خبير تربوي في صياغة الاختبارات لطلاب المدارس. أجب دائماً بصيغة مصفوفة JSON صالحة فقط.";
+
+        try {
+            const res = await callGemini(prompt, sysPrompt);
+            let cleanJson = res.replace(/```json/g, '').replace(/```/g, '').trim();
+            let newQs = JSON.parse(cleanJson);
+            if(Array.isArray(newQs)) {
+                window.draftExamQuestions = window.draftExamQuestions.concat(newQs);
+                renderDraftQuestions();
+                showToast('تم توليد الأسئلة بنجاح ✨!', 'bg-success');
+            } else {
+                throw new Error("Invalid format");
+            }
+        } catch(e) {
+            console.error("Parse Error:", e);
+            renderDraftQuestions();
+            showToast('حدث خطأ أثناء التوليد، يرجى المحاولة مرة أخرى.', 'bg-error');
+        }
+    };
+
     window.loadStudentStudyLogsForExam = function() {
         let sId = v('aiExStudent');
         let sel = $('aiExRelatedLog');
@@ -1499,7 +1527,6 @@
         opts += logs.map(l => {
             let details = l.catName === 'حصاد دوري' ? `حصة ${l.period} (ص ${l.start}-${l.end})` : `(ص ${l.start}-${l.end})`;
             let isFailed = l.needsRestudy ? '🔴 (إعادة مذاكرة)' : '';
-            // Data attribute stringified so we can auto-fill title
             let logDataStr = encodeURIComponent(JSON.stringify({subId: l.subId, text: `${l.catName} ${getSub(l.subId)} ${details}`}));
             return `<option value="${l.id}" data-info="${logDataStr}">${l.date} | ${l.catName} | ${getSub(l.subId)} ${details} ${isFailed}</option>`;
         }).join('');
@@ -1521,7 +1548,6 @@
         }
     };
 
-    // 3. إدارة مسودة الأسئلة في واجهة الإدارة (Manual Only)
     window.addManualDraftQuestion = function() {
         window.draftExamQuestions.push({ type: 'direct', question: '', options: ['', '', '', ''], correctAnswer: '' });
         renderDraftQuestions();
@@ -1549,7 +1575,7 @@
     function renderDraftQuestions() {
         let container = $('aiQuestionsContainer');
         if(window.draftExamQuestions.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem; background:#f8fafc; border-radius:8px;">ابدأ بإضافة الأسئلة يدوياً عبر الزر أعلاه.</div>';
+            container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light); font-size:0.9rem; background:#f8fafc; border-radius:8px;">ابدأ بإضافة الأسئلة يدوياً أو دع الذكاء الاصطناعي يولدها لك.</div>';
             return;
         }
 
@@ -1591,10 +1617,9 @@
         container.innerHTML = html;
     }
 
-    // 4. حفظ الاختبار وإرساله
     window.saveAiExam = function() {
         let sId = v('aiExStudent'), subId = v('aiExSubject'), title = v('aiExTitle'), status = v('aiExStatus');
-        let relatedLogId = v('aiExRelatedLog'); // السجل المرتبط
+        let relatedLogId = v('aiExRelatedLog'); 
         
         if(!sId || !subId || !title) return showToast('أكمل بيانات الاختبار الأساسية (الطالب، المادة، العنوان)', 'bg-error');
 
@@ -1671,7 +1696,6 @@
         if(ex) { ex.status = newStatus; saveDb(); showToast('تم تغيير حالة قفل الاختبار', 'bg-success'); renderAdminAiExams(); }
     };
 
-    // 5. التصحيح الآلي والمراجعة من قبل المدير (Study Loop Logic)
     window.openGradeExam = function(id) {
         let ex = db.aiExams.find(x => x.id === id); if(!ex) return;
         $('gradeExamId').value = id;
@@ -1725,32 +1749,24 @@
 
         ex.score = score; ex.maxScore = max; ex.status = 'graded';
         
-        // 1. تسجيل النتيجة في سجل الدرجات العام
         db.exams.push({ 
             id: generateId(), sId: ex.sId, subId: ex.subId, typeId: 'مراجعة الوالد للدرس', sourceId: 'تقييم داخلي', 
             date: getTodayIso(), isoDate: getTodayIso(), score: score, max: max 
         });
 
-        // 2. Study Loop Engine (دورة إعادة المذاكرة)
         if (ex.relatedLogId) {
-            // البحث عن السجل الأصلي
             let originalLog = db.harvest.find(x => x.id === ex.relatedLogId) || 
                               db.study.find(x => x.id === ex.relatedLogId) || 
                               db.review.find(x => x.id === ex.relatedLogId);
             
             if (originalLog) {
                 if (decision === 'fail_re_study') {
-                    // وسم السجل القديم بأنه مرفوض/يحتاج إعادة
                     originalLog.needsRestudy = true;
-                    
-                    // إنشاء سجل جديد إجباري للطالب في قائمة "حصاد/مذاكرة" ليقوم به
                     let newLog = { ...originalLog, id: generateId(), date: getTodayIso(), isoDate: getTodayIso(), isMandatoryRestudy: true, originalLogId: originalLog.id };
-                    
-                    // يوضع في قسم "المراجعة" كإلزام
                     db.review.push(newLog);
                     showToast('تم التقييم. تم إرسال أمر إعادة مذاكرة إجباري للطالب!', 'bg-warning');
                 } else {
-                    originalLog.needsRestudy = false; // نجح وتم إغلاق الحلقة
+                    originalLog.needsRestudy = false; 
                     showToast('تم التقييم بنجاح. الطالب استوعب الدرس!', 'bg-success');
                 }
             }
@@ -1761,9 +1777,6 @@
         saveDb(); closeModal('gradeAiExamModal'); renderAdminAiExams();
     };
 
-    // ==========================================
-    // --- MANUAL EXAMS LOGIC (STUDENT) ---
-    // ==========================================
     function renderStudentAiExams() {
         if(!$('std-aiexams').classList.contains('active')) return;
         let container = $('stdAiExamsList');
@@ -1783,7 +1796,6 @@
         let html = '';
         [...myExams].reverse().forEach(ex => {
             let sub = db.subjects.find(s => s.id === ex.subId);
-            
             let boxStyle = ''; let lockMsg = ''; let isEditable = false;
             
             if(ex.status === 'preview') {
@@ -1864,6 +1876,26 @@
         showToast('تم تسليم الاختبار بنجاح، بانتظار التقييم.', 'bg-success');
     };
 
+    // --- Student AI Tutor ---
+    window.askAiTutor = async function() {
+        let q = v('stdAiQuery');
+        if(!q) { showToast('يرجى كتابة سؤالك أولاً', 'bg-warning'); return; }
+        
+        $('stdAiResponse').style.display = 'block';
+        $('stdAiResponse').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التفكير وجمع المعلومات...';
+
+        let prompt = q;
+        let sys = "أنت معلم افتراضي ذكي ومشجع لطلاب المدارس. اسمك (مساعد قيس). أجب باختصار وبطريقة مبسطة وواضحة جداً تتناسب مع أعمار الطلاب. شجعهم دائماً في نهاية إجابتك.";
+
+        try {
+            let res = await callGemini(prompt, sys);
+            $('stdAiResponse').innerHTML = res.replace(/\n/g, '<br>');
+            $('stdAiQuery').value = '';
+        } catch(e) {
+            $('stdAiResponse').innerHTML = 'عذراً يا بطل، حدث خطأ في الاتصال، حاول مجدداً.';
+        }
+    };
+
     // --- Student Logic (Study Session & XP) ---
     function calcStudentXP(sId) {
         let xp = 0;
@@ -1886,7 +1918,6 @@
         `;
     }
 
-    // --- Added Missing Functions for Dashboard, Polling, & Student Features ---
     function updateAdminDashboardStats() {
         if($('statSchools')) $('statSchools').innerText = db.schools.length;
         if($('statStudents')) $('statStudents').innerText = db.students.length;
@@ -1921,20 +1952,16 @@
         }, 5000);
     }
 
-    // دالة متطورة جداً لمعالجة النصوص العربية وتجاهل (ال) التعريف، الهمزات، والمسافات
     function normalizeArabic(text) {
         if (!text) return '';
         return text.trim()
-            .replace(/[أإآا]/g, 'ا') // توحيد الألف
-            .replace(/ة/g, 'ه') // توحيد التاء المربوطة
-            .replace(/ى/g, 'ي') // توحيد الألف المقصورة
-            .replace(/ال/g, '') // إزالة (ال) التعريف لتتطابق كلمة (الأول) مع (أول)
-            .replace(/\s+/g, ''); // إزالة المسافات نهائياً لضمان التطابق التام
+            .replace(/[أإآا]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
+            .replace(/ال/g, '').replace(/\s+/g, '');
     }
 
     function populateStudentDropdowns() {
         let subOpts = '<option value="">-- اختر المادة --</option>';
-        let filterSubOpts = '<option value="all">كل المواد</option>'; // للفلاتر
+        let filterSubOpts = '<option value="all">كل المواد</option>';
         if(window.currentUser) {
             let stGrade = window.currentUser.grade || '';
             let normStGrade = normalizeArabic(stGrade);
@@ -1942,11 +1969,7 @@
             
             db.subjects.forEach(s => {
                 let normSubGrade = normalizeArabic(s.grade);
-                
-                // تطابق المدرسة: يعرض المادة إذا تطابقت المدرسة، أو إذا كانت المادة عامة (بدون مدرسة)، أو الطالب بلا مدرسة
                 let schoolMatch = (!s.schoolId || s.schoolId === stSchool || !stSchool);
-                
-                // تطابق الصف: يتجاهل الهمزات والفروقات البسيطة، أو يعرض المادة إذا ترك المدير خانة الصف فارغة
                 let gradeMatch = !normSubGrade || normSubGrade === normStGrade || normSubGrade.includes(normStGrade) || normStGrade.includes(normSubGrade);
                 
                 if(schoolMatch && gradeMatch) {
@@ -1961,7 +1984,6 @@
         if($('filterActSubjectLog')) $('filterActSubjectLog').innerHTML = filterSubOpts;
     }
 
-    // دالة جديدة لرسم جدول سجل المذاكرة للطالب مع الفلاتر وعرض إعادة المذاكرة
     window.renderStdStudyLogsTable = function() {
         if(!$('tableStdStudyLogs')) return;
         let sId = window.currentUser.id;
@@ -1974,7 +1996,6 @@
         if(typeFlt === 'all' || typeFlt === 'study') db.study.filter(x=>x.sId===sId).forEach(x=>logs.push({...x, catName:'مذاكرة ذاتية', color:'badge-green'}));
         if(typeFlt === 'all' || typeFlt === 'review') db.review.filter(x=>x.sId===sId).forEach(x=>logs.push({...x, catName:'مراجعة', color:'badge-purple'}));
 
-        // تصفية حسب المادة
         if(subFlt !== 'all') logs = logs.filter(x => x.subId === subFlt);
 
         logs.sort((a,b) => new Date(b.isoDate || b.date) - new Date(a.isoDate || a.date));
@@ -1986,7 +2007,6 @@
             html += logs.map(l => {
                 let details = l.catName === 'حصاد دوري' ? `حصة ${l.period} - ${l.lesson} (ص ${l.start}-${l.end})` : `من ص ${l.start} إلى ص ${l.end}`;
                 
-                // Study Loop Logic in Table
                 let statusBadge = '<span class="badge badge-dark">مكتملة</span>';
                 if (l.needsRestudy) {
                     statusBadge = '<span class="badge badge-red">🔴 تتطلب إعادة مذاكرة</span>';
@@ -2006,7 +2026,6 @@
         $('tableStdStudyLogs').innerHTML = html + '</tbody>';
     };
 
-    // تم التعديل لتشمل الفلاتر
     window.renderStdActivitiesTable = function() {
         if(!$('tableStdActivities')) return;
         let sId = window.currentUser.id;
@@ -2028,12 +2047,6 @@
             html += myAct.map(a => `<tr><td>${a.date}</td><td><span class="badge badge-orange">${a.type}</span></td><td>${getSub(a.subId)}</td><td>${a.title}</td></tr>`).join('');
         }
         $('tableStdActivities').innerHTML = html + '</tbody>';
-    }
-
-    // إزالة renderStudentTables القديمة لأننا استبدلناها
-    function renderStudentTables() {
-        renderStdStudyLogsTable();
-        renderStdActivitiesTable();
     }
 
     window.switchStdLogType = function(type) {
@@ -2058,10 +2071,9 @@
             db.review.push(logData);
         }
         
-        // إغلاق أي جلسات إعادة مذاكرة سابقة لنفس المادة (Study Loop Check)
         let relatedRestudy = db.review.find(r => r.sId === window.currentUser.id && r.subId === subId && r.isMandatoryRestudy && r.needsRestudy !== false);
         if(relatedRestudy) {
-            relatedRestudy.needsRestudy = false; // تم إغلاقها
+            relatedRestudy.needsRestudy = false;
         }
 
         saveDb(); updateStudentDashboardStats(); renderStdStudyLogsTable(); showToast('تم حفظ الإنجاز بنجاح!', 'bg-success');
@@ -2136,7 +2148,6 @@
         }
     };
 
-    // --- Utility Functions ---
     function populateAdminDropdowns() {
         let schOpts = '<option value="">-- اختر المدرسة --</option>';
         db.schools.forEach(s => schOpts += `<option value="${s.id}">${s.name}</option>`);
@@ -2304,7 +2315,6 @@
         } 
     };
 
-    // --- Admin Logs Management ---
     window.renderAdminLogsTable = function() {
         let sId = v('adminLogsStudent');
         let html = '<thead><tr><th>التاريخ</th><th>القسم</th><th>النوع/المادة</th><th>التفاصيل</th><th>إجراء</th></tr></thead><tbody>';
@@ -2354,10 +2364,9 @@
         }
     };
 
-    // Global chart instances to destroy them before re-rendering
     window.radarCharts = { rep: null, stdRep: null };
 
-    window.fillReportData = function(sId, from, to, pfx) {
+    window.fillReportData = async function(sId, from, to, pfx) {
         if(!sId) { $(pfx+'Container').style.display='none'; return; }
         
         $(pfx+'Container').style.display = 'block';
@@ -2370,7 +2379,6 @@
         $(pfx+'StName').innerText = st.name;
         $(pfx+'StDetails').innerText = `${st.grade} - قاعة ${st.section}`;
 
-        // --- قراءة الفلاتر وخيارات الشرائح المراد عرضها ---
         let incSummary = $(pfx+'IncSummary') ? $(pfx+'IncSummary').checked : true;
         let incExams = $(pfx+'IncExams') ? $(pfx+'IncExams').checked : true;
         let incStudy = $(pfx+'IncStudy') ? $(pfx+'IncStudy').checked : true;
@@ -2380,7 +2388,6 @@
         let incSelfStudy = $(pfx+'SubSelfStudy') ? $(pfx+'SubSelfStudy').checked : true;
         let incRev = $(pfx+'SubReview') ? $(pfx+'SubReview').checked : true;
 
-        // --- التحكم بظهور شرائح التقرير (HTML Sections) ---
         if($(pfx+'SecSummary')) $(pfx+'SecSummary').style.display = incSummary ? 'block' : 'none';
         if($(pfx+'SecExams')) $(pfx+'SecExams').style.display = incExams ? 'block' : 'none';
         if($(pfx+'SecStudy')) $(pfx+'SecStudy').style.display = incStudy ? 'block' : 'none';
@@ -2394,11 +2401,9 @@
             return true;
         };
 
-        // --- Data Calculations ---
         let myExams = db.exams.filter(dFilter);
         let myAiExams = db.aiExams.filter(dFilter).filter(e => e.status === 'graded');
         
-        // Combine all scored exams for GPA and Chart
         let allScoredExams = [
             ...myExams,
             ...myAiExams.map(e => ({ subId: e.subId, score: e.score, max: e.maxScore, typeId: 'مراجعة وتقييم الفهم' }))
@@ -2418,37 +2423,25 @@
         $(pfx+'XP').innerText = xpTotal;
         $(pfx+'ExamsCount').innerText = allScoredExams.length;
 
-        // --- Smart Summary Generation (بدون ذكاء اصطناعي، باستخدام المنطق البرمجي) ---
-        let summaryHtml = '';
-        if (avg >= 95) {
-            summaryHtml += `يُظهر الطالب <b>${st.name}</b> تفوقاً أكاديمياً استثنائياً، حيث يعكس معدله التراكمي المرتفع جداً (${avg.toFixed(1)}%) التزاماً عالياً وحرصاً شديداً على التفوق وإتقان المهارات. `;
-        } else if (avg >= 85) {
-            summaryHtml += `يتمتع الطالب <b>${st.name}</b> بمستوى أكاديمي ممتاز بمعدل (${avg.toFixed(1)}%)، مع وجود مساحة جيدة للتحسن الطفيف للوصول للامتياز الكامل. `;
-        } else if (avg >= 70) {
-            summaryHtml += `أداء الطالب <b>${st.name}</b> يعتبر متوسظاً بمعدل (${avg.toFixed(1)}%). نوصي بالتركيز بشكل أكبر على المواد التي شهدت تراجعاً في التقييمات الأخيرة. `;
-        } else if (allScoredExams.length > 0) {
-            summaryHtml += `يحتاج الطالب <b>${st.name}</b> إلى عناية أكاديمية مكثفة ومضاعفة الجهد للارتقاء بمعدله الحالي (${avg.toFixed(1)}%). `;
-        } else {
-            summaryHtml += `لم يتم رصد درجات قياس كافية لتقييم المستوى الأكاديمي الشامل في هذه الفترة. `;
+        // --- توليد التقرير التربوي الذكي باستخدام Gemini ---
+        $(pfx+'SmartSummary').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري تحليل أداء الطالب وصياغة التقرير التربوي...';
+        
+        const aiReportPrompt = `قم بكتابة فقرة تحليلية تربوية قصيرة (حوالي 3 أسطر) لطالب اسمه "${st.name}".
+        بيانات الطالب الفعلية الحالية:
+        - معدل إتقان المهارات: ${avg.toFixed(1)}%
+        - ساعات المذاكرة الذاتية الموثقة: ${hours} ساعة
+        - عدد أيام الغياب: ${absenceCount} يوم
+        اكتب التقرير بأسلوب احترافي، مشجع، وموجه لولي الأمر والإدارة، يعكس هذا الأداء بدقة مع تقديم نصيحة أو توصية واحدة محددة.`;
+        
+        const aiReportSysPrompt = "أنت مستشار تربوي ذكي وخبير في الإرشاد الأكاديمي للطلاب.";
+        
+        try {
+            const aiInsight = await callGemini(aiReportPrompt, aiReportSysPrompt);
+            $(pfx+'SmartSummary').innerHTML = aiInsight.replace(/\n/g, '<br>');
+        } catch (e) {
+            $(pfx+'SmartSummary').innerHTML = "تعذر توليد التحليل الذكي حالياً، يرجى المحاولة لاحقاً.";
         }
 
-        if (hours > 15) {
-            summaryHtml += `<br><br>كما يعكس سجل النظام تفانياً وانضباطاً ذاتياً عالياً من خلال قضاء <b>${hours} ساعة</b> موثقة في الاستذكار المستمر. `;
-        } else if (hours > 5) {
-            summaryHtml += `<br><br>تم رصد <b>${hours} ساعة</b> تفاعل ذاتي عبر النظام، وهي بداية جيدة تتطلب الاستمرارية. `;
-        }
-
-        if (absenceCount === 0) {
-            summaryHtml += `<br><br><span style="color:var(--secondary); font-weight:bold;"><i class="fa-solid fa-check-circle"></i> يتميز الطالب بالانضباط التام في الحضور وعدم تسجيل أي حالات غياب.</span>`;
-        } else if (absenceCount <= 3) {
-            summaryHtml += `<br><br><span style="color:var(--text-light);"><i class="fa-solid fa-info-circle"></i> سجلت المنصة (${absenceCount}) أيام غياب مبررة.</span>`;
-        } else {
-            summaryHtml += `<br><br><span style="color:var(--danger); font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> تنبيه إداري: لوحظ ارتفاع مقلق في معدل الغياب (${absenceCount} أيام)، مما يؤثر بشكل مباشر على جودة التحصيل.</span>`;
-        }
-
-        $(pfx+'SmartSummary').innerHTML = summaryHtml;
-
-        // --- Chart.js Radar Generation ---
         let getSub = id => { let s = db.subjects.find(x=>x.id===id); return s?s.name:'عام';};
         
         let subjectAverages = {};
@@ -2503,8 +2496,6 @@
         } else {
             $(pfx+'RadarChart').style.display = 'none';
         }
-
-        // --- Official Tables Filling ---
         
         let combinedExamsTable = '';
         if (myExams.length === 0 && myAiExams.length === 0) {
@@ -2519,7 +2510,6 @@
         }
         $(pfx+'TableExams').innerHTML = `<thead><tr><th>التاريخ</th><th>المادة</th><th>الاختبار / مقياس الأداء</th><th>الدرجة</th></tr></thead><tbody>${combinedExamsTable}</tbody>`;
 
-        // تم تطبيق الفلاتر الفرعية على بيانات سجل المتابعة
         let myHarv = incHarv ? db.harvest.filter(dFilter).map(x => ({...x, logType: 'حصاد دوري', color: '#2563eb'})) : [];
         let myStudyLogs = incSelfStudy ? db.study.filter(dFilter).map(x => ({...x, logType: 'مذاكرة ذاتية', color: '#10b981'})) : [];
         let myRevLogs = incRev ? db.review.filter(dFilter).map(x => ({...x, logType: 'مراجعة', color: '#8b5cf6'})) : [];
